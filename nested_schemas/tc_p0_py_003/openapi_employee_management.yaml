@@ -1,0 +1,482 @@
+openapi: 3.0.0
+info:
+  title: Employee Management API
+  description: |
+    Process employee data with complex nested structures (30+ fields) and detect circular
+    references in organizational relationships. Supports comprehensive employee profiles
+    and relationship analysis.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: https://api.example.com/v1
+    description: Production server
+  - url: https://api-staging.example.com/v1
+    description: Staging server
+
+paths:
+  /employees/process:
+    post:
+      summary: Process employee data
+      description: |
+        Process employee information with complex nested structures including personal info,
+        employment details, projects, skills, certifications, and performance data. Also
+        handles person relationships with circular reference detection.
+      operationId: processEmployeeData
+      tags:
+        - Employees
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeRequest'
+            examples:
+              employeeData:
+                summary: Complete employee profile
+                value:
+                  employee:
+                    personal_info:
+                      name: John Doe
+                      date_of_birth: "1990-05-15"
+                      ssn: 123-45-6789
+                      contact:
+                        email: john.doe@company.com
+                        phone: "+1-555-0100"
+                        mobile: "+1-555-0101"
+                      address:
+                        street: 123 Tech Street
+                        city: San Francisco
+                        state: CA
+                        zipcode: "94105"
+                        country: USA
+                      emergency_contact:
+                        name: Jane Doe
+                        relationship: Spouse
+                        phone: "+1-555-0102"
+                    employment:
+                      employee_id: EMP-001
+                      position: Senior Software Engineer
+                      department: Engineering
+                      start_date: "2024-01-15"
+                      salary: 120000
+                      manager:
+                        employee_id: EMP-100
+                        name: Bob Smith
+                      projects:
+                        - name: Cloud Migration
+                          role: Tech Lead
+                          status: Active
+                        - name: API Redesign
+                          role: Developer
+                          status: Completed
+                      skills:
+                        - name: Python
+                          proficiency: Expert
+                          years_experience: 5
+                        - name: AWS
+                          proficiency: Advanced
+                          years_experience: 3
+                      certifications:
+                        - name: AWS Solutions Architect
+                          issuer: Amazon Web Services
+                          date_obtained: "2023-06-15"
+                          expiry_date: "2026-06-15"
+                      performance:
+                        rating: 4.5
+                        last_review_date: "2023-12-01"
+                        next_review_date: "2024-06-01"
+              circularReference:
+                summary: Circular reference detection
+                value:
+                  person:
+                    name: Alice Johnson
+                    employee_id: EMP-001
+                    manager:
+                      name: Bob Smith
+                      employee_id: EMP-002
+                      manager:
+                        name: Alice Johnson
+                        employee_id: EMP-001
+      responses:
+        '200':
+          description: Employee data processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeResponse'
+              examples:
+                employeeProfile:
+                  summary: Employee profile response
+                  value:
+                    type: employee
+                    employee_name: John Doe
+                    employee_id: EMP-001
+                    contact_info: "Email: john.doe@company.com, Phone: +1-555-0100, Mobile: +1-555-0101"
+                    address: 123 Tech Street, San Francisco, CA, 94105, USA
+                    emergency_contact: "Jane Doe (Spouse): +1-555-0102"
+                    position: Senior Software Engineer
+                    department: Engineering
+                    start_date: "2024-01-15"
+                    salary: "$120,000"
+                    manager: Bob Smith (EMP-100)
+                    projects:
+                      - "Cloud Migration - Tech Lead (Active)"
+                      - "API Redesign - Developer (Completed)"
+                    skills:
+                      - "Python: Expert (5 years)"
+                      - "AWS: Advanced (3 years)"
+                    certifications:
+                      - "AWS Solutions Architect (Amazon Web Services) - Obtained: 2023-06-15, Expires: 2026-06-15"
+                    performance: "Rating: 4.5/5, Last Review: 2023-12-01, Next Review: 2024-06-01"
+                    summary: "Employee profile for John Doe (EMP-001) - Senior Software Engineer in Engineering"
+                circularDetection:
+                  summary: Circular reference detected
+                  value:
+                    type: person
+                    person_name: Alice Johnson
+                    employee_id: EMP-001
+                    relationship: "Alice Johnson → Bob Smith → Alice Johnson"
+                    relationship_type: circular
+                    circular_reference_detected: true
+                    message: "Circular reference detected in management chain"
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    # Main Request Schema
+    EmployeeRequest:
+      type: object
+      properties:
+        employee:
+          $ref: '#/components/schemas/Employee'
+        person:
+          $ref: '#/components/schemas/Person'
+
+    # Employee Schema (Complex 30+ fields)
+    Employee:
+      type: object
+      properties:
+        personal_info:
+          $ref: '#/components/schemas/PersonalInfo'
+        employment:
+          $ref: '#/components/schemas/Employment'
+
+    # Personal Info Schema
+    PersonalInfo:
+      type: object
+      properties:
+        name:
+          type: string
+          example: John Doe
+        date_of_birth:
+          type: string
+          format: date
+          example: "1990-05-15"
+        ssn:
+          type: string
+          example: 123-45-6789
+        contact:
+          $ref: '#/components/schemas/ContactInfo'
+        address:
+          $ref: '#/components/schemas/Address'
+        emergency_contact:
+          $ref: '#/components/schemas/EmergencyContact'
+
+    # Contact Info Schema
+    ContactInfo:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: john.doe@company.com
+        phone:
+          type: string
+          example: "+1-555-0100"
+        mobile:
+          type: string
+          example: "+1-555-0101"
+
+    # Address Schema
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+          example: 123 Tech Street
+        city:
+          type: string
+          example: San Francisco
+        state:
+          type: string
+          example: CA
+        zipcode:
+          type: string
+          example: "94105"
+        country:
+          type: string
+          example: USA
+
+    # Emergency Contact Schema
+    EmergencyContact:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Jane Doe
+        relationship:
+          type: string
+          example: Spouse
+        phone:
+          type: string
+          example: "+1-555-0102"
+
+    # Employment Schema
+    Employment:
+      type: object
+      properties:
+        employee_id:
+          type: string
+          example: EMP-001
+        position:
+          type: string
+          example: Senior Software Engineer
+        department:
+          type: string
+          example: Engineering
+        start_date:
+          type: string
+          format: date
+          example: "2024-01-15"
+        salary:
+          type: number
+          example: 120000
+        manager:
+          $ref: '#/components/schemas/Manager'
+        projects:
+          type: array
+          items:
+            $ref: '#/components/schemas/Project'
+        skills:
+          type: array
+          items:
+            $ref: '#/components/schemas/Skill'
+        certifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/Certification'
+        performance:
+          $ref: '#/components/schemas/Performance'
+
+    # Manager Schema
+    Manager:
+      type: object
+      properties:
+        employee_id:
+          type: string
+          example: EMP-100
+        name:
+          type: string
+          example: Bob Smith
+
+    # Project Schema
+    Project:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Cloud Migration
+        role:
+          type: string
+          example: Tech Lead
+        status:
+          type: string
+          enum: [Active, Completed, On Hold]
+          example: Active
+
+    # Skill Schema
+    Skill:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Python
+        proficiency:
+          type: string
+          enum: [Beginner, Intermediate, Advanced, Expert]
+          example: Expert
+        years_experience:
+          type: integer
+          example: 5
+
+    # Certification Schema
+    Certification:
+      type: object
+      properties:
+        name:
+          type: string
+          example: AWS Solutions Architect
+        issuer:
+          type: string
+          example: Amazon Web Services
+        date_obtained:
+          type: string
+          format: date
+          example: "2023-06-15"
+        expiry_date:
+          type: string
+          format: date
+          example: "2026-06-15"
+
+    # Performance Schema
+    Performance:
+      type: object
+      properties:
+        rating:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 5
+          example: 4.5
+        last_review_date:
+          type: string
+          format: date
+          example: "2023-12-01"
+        next_review_date:
+          type: string
+          format: date
+          example: "2024-06-01"
+
+    # Person Schema (for circular reference testing)
+    Person:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Alice Johnson
+        employee_id:
+          type: string
+          example: EMP-001
+        manager:
+          $ref: '#/components/schemas/PersonManager'
+
+    # Person Manager Schema (allows circular references)
+    PersonManager:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Bob Smith
+        employee_id:
+          type: string
+          example: EMP-002
+        manager:
+          $ref: '#/components/schemas/PersonManager'
+
+    # Response Schema
+    EmployeeResponse:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [employee, person]
+          description: Type of data processed
+        employee_name:
+          type: string
+          description: Employee name
+        person_name:
+          type: string
+          description: Person name (for circular reference scenarios)
+        employee_id:
+          type: string
+          description: Employee ID
+        contact_info:
+          type: string
+          description: Formatted contact information
+        address:
+          type: string
+          description: Formatted address
+        emergency_contact:
+          type: string
+          description: Formatted emergency contact
+        position:
+          type: string
+          description: Job position
+        department:
+          type: string
+          description: Department name
+        start_date:
+          type: string
+          description: Employment start date
+        salary:
+          type: string
+          description: Formatted salary
+        manager:
+          type: string
+          description: Manager information
+        projects:
+          type: array
+          items:
+            type: string
+          description: List of projects
+        skills:
+          type: array
+          items:
+            type: string
+          description: List of skills
+        certifications:
+          type: array
+          items:
+            type: string
+          description: List of certifications
+        performance:
+          type: string
+          description: Performance information
+        relationship:
+          type: string
+          description: Relationship chain (for circular references)
+        relationship_type:
+          type: string
+          enum: [linear, circular]
+          description: Type of relationship
+        circular_reference_detected:
+          type: boolean
+          description: Whether circular reference was detected
+        message:
+          type: string
+          description: Additional message
+        summary:
+          type: string
+          description: Summary of processed data
+
+    # Error Response Schema
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        details:
+          type: string
+          description: Detailed error information
+
+tags:
+  - name: Employees
+    description: Employee management operations

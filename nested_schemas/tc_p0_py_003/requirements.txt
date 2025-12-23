@@ -1,0 +1,5 @@
+# Requirements for TC-P0-PY-003 Python Tool
+# Epic #45755 - Nested Schema Support - Complex Scenarios
+
+# No additional requirements needed beyond the base watsonx orchestrate SDK
+# The tool uses only standard Python libraries (typing, set operations)
