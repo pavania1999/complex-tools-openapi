@@ -2,8 +2,8 @@ services:
   - type: web
     name: nested-schema-api
     env: python
-    buildCommand: pip install -r api_requirements.txt
-    startCommand: python api_server.py
+    buildCommand: pip install -r nested_schemas/api_requirements.txt
+    startCommand: cd nested_schemas && python api_server.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.9.0
