@@ -22,10 +22,8 @@ Output: Clean, formatted employee profile or relationship summary
 """
 
 from typing import Dict, Any, Optional, List, Set
-from ibm_watsonx_orchestrate.agent_builder.tools import tool, ToolPermission
 
 
-@tool(permission=ToolPermission.READ_ONLY)
 def process_employee_data(employee_info: dict) -> dict:
     """Process comprehensive employee information and return a formatted profile.
 

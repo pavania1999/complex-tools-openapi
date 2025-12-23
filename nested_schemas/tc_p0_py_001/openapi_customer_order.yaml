@@ -107,7 +107,7 @@ paths:
                     shipping_address: 456 Oak Avenue, New York, NY, 10001, USA
                     billing_address: 789 Pine Street, New York, NY, 10002, USA
                     confirmation_message: Order ORD-2024-002 confirmed for Jane Smith
-                    order_summary: 1 item(s), Total: $1299.99
+                    order_summary: "1 item(s), Total: $1299.99"
         '400':
           description: Invalid request data
           content:
@@ -346,7 +346,7 @@ components:
         order_summary:
           type: string
           description: Order summary
-          example: 1 item(s), Total: $1299.99
+          example: "1 item(s), Total: $1299.99"
 
     # Processed Item Schema
     ProcessedItem:

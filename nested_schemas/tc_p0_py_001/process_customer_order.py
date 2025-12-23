@@ -21,10 +21,8 @@ Output: Clean, formatted order confirmation with all details
 """
 
 from typing import Dict, Any
-from ibm_watsonx_orchestrate.agent_builder.tools import tool, ToolPermission
 
 
-@tool(permission=ToolPermission.READ_ONLY)
 def process_customer_order(order_data: dict) -> dict:
     """Process customer order and return a formatted order confirmation.
 
