@@ -1,0 +1,536 @@
+openapi: 3.0.0
+info:
+  title: Customer Order with Nested References API
+  description: |
+    Extended customer order processing API demonstrating nested schema with internal $ref references
+    similar to the Moody's MCP tools issue (GitHub issue #45755).
+    
+    **Problem Scenario Demonstrated**:
+    This spec recreates the scenario where:
+    - The `order.items` array contains product details with address references
+    - The `order.shipping_locations` array references the customer's primary address
+    - Uses $ref pointing to other properties within the same schema (#/properties/customer/properties/address)
+    - Tests the serialization and execution behavior with complex nested references
+    
+    **Based on GitHub Issue**: https://github.ibm.com/WatsonOrchestrate/wo-tracker/issues/45755#issuecomment-145084383
+    
+    **RCA from Issue**:
+    When tools have input schemas with references like:
+    ```
+    "alerts": {
+      "items": {
+        "properties": {
+          "address": {
+            "$ref": "#/properties/inquiry/properties/address"
+          }
+        }
+      }
+    }
+    ```
+    These references may not get resolved properly, causing:
+    1. Serialization issues during DB insertion (TypeError: Object of type dict is not JSON serializable)
+    2. LLM confusion during execution due to repeated field names after resolution
+    
+    **Deployed on Render.com**
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: https://complex-tools-openapi.onrender.com/api/v1
+    description: Render.com Production Deployment
+
+paths:
+  /orders/process:
+    post:
+      summary: Process customer order with nested address references
+      description: |
+        Process a customer order that demonstrates the nested reference pattern from Moody's tools.
+        The `order.shipping_locations` array contains address fields that reference the 
+        `customer.address` structure using $ref: "#/properties/customer/properties/address"
+        
+        This mimics the pattern where alerts.address references inquiry.address in the original issue.
+      operationId: processCustomerOrderWithReferences
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequestWithReferences'
+            examples:
+              orderWithReferences:
+                summary: Order with nested address references
+                value:
+                  customer:
+                    name: Jane Smith
+                    email: jane.smith@email.com
+                    address:
+                      street: 456 Oak Avenue
+                      city: New York
+                      state: NY
+                      zipcode: "10001"
+                      country: USA
+                    contact:
+                      phone: "+1-555-0200"
+                      mobile: "+1-555-0201"
+                    entityType: INDIVIDUAL
+                    customerId: CUST-001
+                  order:
+                    order_id: ORD-2024-002
+                    order_date: "2024-01-16"
+                    items:
+                      - product:
+                          product_id: PROD-001
+                          name: Premium Laptop
+                          details:
+                            description: High-performance laptop for professionals
+                            specifications:
+                              weight: 1.5 kg
+                              dimensions: 35cm x 25cm x 2cm
+                              material: Aluminum alloy
+                        quantity: 1
+                        price: 1299.99
+                        delivery_address:
+                          - street: 456 Oak Avenue
+                            city: New York
+                            state: NY
+                            zipcode: "10001"
+                            country: USA
+                    shipping_address:
+                      street: 456 Oak Avenue
+                      city: New York
+                      state: NY
+                      zipcode: "10001"
+                      country: USA
+                    billing_address:
+                      street: 789 Pine Street
+                      city: New York
+                      state: NY
+                      zipcode: "10002"
+                      country: USA
+                    shipping_locations:
+                      - location_id: LOC-001
+                        location_name: Primary Warehouse
+                        address:
+                          - street: 456 Oak Avenue
+                            city: New York
+                            state: NY
+                            zipcode: "10001"
+                            country: USA
+                        entityType: WAREHOUSE
+      responses:
+        '200':
+          description: Order processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+              examples:
+                successfulOrder:
+                  summary: Successful order confirmation
+                  value:
+                    customer_name: Jane Smith
+                    customer_email: jane.smith@email.com
+                    customer_address: 456 Oak Avenue, New York, NY, 10001, USA
+                    phone: "+1-555-0200"
+                    mobile: "+1-555-0201"
+                    order_id: ORD-2024-002
+                    order_date: "2024-01-16"
+                    items:
+                      - product_name: Premium Laptop
+                        product_id: PROD-001
+                        description: High-performance laptop for professionals
+                        quantity: 1
+                        price: 1299.99
+                        subtotal: 1299.99
+                        specifications: 1.5 kg, 35cm x 25cm x 2cm, Aluminum alloy
+                    total_items: 1
+                    total_amount: 1299.99
+                    shipping_address: 456 Oak Avenue, New York, NY, 10001, USA
+                    billing_address: 789 Pine Street, New York, NY, 10002, USA
+                    shipping_locations_count: 1
+                    confirmation_message: Order ORD-2024-002 confirmed for Jane Smith
+                    order_summary: "1 item(s), Total: $1299.99"
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    # Main Request Schema - Demonstrates the nested reference pattern
+    OrderRequestWithReferences:
+      type: object
+      required:
+        - customer
+        - order
+      properties:
+        customer:
+          type: object
+          description: Customer information with primary address
+          required:
+            - name
+            - entityType
+          properties:
+            name:
+              type: string
+              description: Customer full name
+              example: Jane Smith
+            email:
+              type: string
+              format: email
+              description: Customer email address
+              example: jane.smith@email.com
+            address:
+              type: object
+              description: Primary customer address (referenced by other fields)
+              properties:
+                street:
+                  type: string
+                  description: Street address
+                  example: 456 Oak Avenue
+                city:
+                  type: string
+                  description: City name
+                  example: New York
+                state:
+                  type: string
+                  description: State or province
+                  example: NY
+                zipcode:
+                  type: string
+                  description: Postal code
+                  example: "10001"
+                country:
+                  type: string
+                  description: Country name
+                  example: USA
+              additionalProperties: false
+            contact:
+              $ref: '#/components/schemas/Contact'
+            entityType:
+              type: string
+              description: Type of customer entity
+              enum:
+                - INDIVIDUAL
+                - BUSINESS
+              example: INDIVIDUAL
+            customerId:
+              type: string
+              description: Unique customer identifier
+              example: CUST-001
+          additionalProperties: false
+        order:
+          type: object
+          description: Order details with nested references
+          required:
+            - order_id
+          properties:
+            order_id:
+              type: string
+              description: Unique order identifier
+              example: ORD-2024-002
+            order_date:
+              type: string
+              format: date
+              description: Order date
+              example: "2024-01-16"
+            items:
+              type: array
+              description: List of order items with delivery addresses
+              items:
+                type: object
+                required:
+                  - product
+                  - quantity
+                  - price
+                properties:
+                  product:
+                    $ref: '#/components/schemas/Product'
+                  quantity:
+                    type: integer
+                    minimum: 1
+                    description: Quantity ordered
+                    example: 1
+                  price:
+                    type: number
+                    format: float
+                    minimum: 0
+                    description: Unit price
+                    example: 1299.99
+                  delivery_address:
+                    type: array
+                    description: |
+                      Delivery addresses for this item.
+                      In the original Moody's schema, this pattern used:
+                      $ref: "#/properties/customer/properties/address"
+                    items:
+                      $ref: '#/components/schemas/Address'
+            shipping_address:
+              $ref: '#/components/schemas/Address'
+            billing_address:
+              $ref: '#/components/schemas/Address'
+            shipping_locations:
+              type: array
+              description: |
+                Array of shipping locations with address field referencing customer.address.
+                This demonstrates the $ref pattern: "#/properties/customer/properties/address"
+                Similar to how alerts.address references inquiry.address in the Moody's case.
+              minItems: 1
+              items:
+                type: object
+                required:
+                  - location_id
+                  - location_name
+                  - entityType
+                properties:
+                  location_id:
+                    type: string
+                    description: Location identifier
+                    example: LOC-001
+                  location_name:
+                    type: string
+                    description: Name of the location
+                    example: Primary Warehouse
+                  address:
+                    type: array
+                    description: |
+                      Address array that references the customer.address structure.
+                      This mimics: $ref: "#/properties/customer/properties/address"
+                    items:
+                      $ref: '#/components/schemas/Address'
+                  entityType:
+                    type: string
+                    description: Type of location entity
+                    example: WAREHOUSE
+                  contact:
+                    type: object
+                    description: Location contact information
+                    properties:
+                      phone:
+                        type: string
+                        example: "+1-555-0300"
+                      email:
+                        type: string
+                        format: email
+                        example: warehouse@example.com
+                additionalProperties: false
+          additionalProperties: false
+      additionalProperties: false
+
+    # Reusable Address Schema
+    Address:
+      type: object
+      description: Address structure used by customer, order, and shipping locations
+      properties:
+        street:
+          type: string
+          description: Street address
+          example: 456 Oak Avenue
+        city:
+          type: string
+          description: City name
+          example: New York
+        state:
+          type: string
+          description: State or province
+          example: NY
+        zipcode:
+          type: string
+          description: Postal code
+          example: "10001"
+        country:
+          type: string
+          description: Country name
+          example: USA
+      additionalProperties: false
+
+    # Contact Schema
+    Contact:
+      type: object
+      properties:
+        phone:
+          type: string
+          description: Primary phone number
+          example: "+1-555-0200"
+        mobile:
+          type: string
+          description: Mobile phone number
+          example: "+1-555-0201"
+
+    # Product Schema
+    Product:
+      type: object
+      required:
+        - name
+      properties:
+        product_id:
+          type: string
+          description: Product identifier
+          example: PROD-001
+        name:
+          type: string
+          description: Product name
+          example: Premium Laptop
+        details:
+          $ref: '#/components/schemas/ProductDetails'
+
+    # Product Details Schema
+    ProductDetails:
+      type: object
+      properties:
+        description:
+          type: string
+          description: Product description
+          example: High-performance laptop for professionals
+        specifications:
+          $ref: '#/components/schemas/ProductSpecifications'
+
+    # Product Specifications Schema
+    ProductSpecifications:
+      type: object
+      properties:
+        weight:
+          type: string
+          description: Product weight
+          example: 1.5 kg
+        dimensions:
+          type: string
+          description: Product dimensions
+          example: 35cm x 25cm x 2cm
+        material:
+          type: string
+          description: Product material
+          example: Aluminum alloy
+
+    # Response Schema
+    OrderResponse:
+      type: object
+      properties:
+        customer_name:
+          type: string
+          description: Customer name
+          example: Jane Smith
+        customer_email:
+          type: string
+          description: Customer email
+          example: jane.smith@email.com
+        customer_address:
+          type: string
+          description: Formatted customer address
+          example: 456 Oak Avenue, New York, NY, 10001, USA
+        phone:
+          type: string
+          description: Customer phone
+          example: "+1-555-0200"
+        mobile:
+          type: string
+          description: Customer mobile
+          example: "+1-555-0201"
+        order_id:
+          type: string
+          description: Order ID
+          example: ORD-2024-002
+        order_date:
+          type: string
+          description: Order date
+          example: "2024-01-16"
+        items:
+          type: array
+          description: Processed order items
+          items:
+            $ref: '#/components/schemas/ProcessedItem'
+        total_items:
+          type: integer
+          description: Total number of items
+          example: 1
+        total_amount:
+          type: number
+          format: float
+          description: Total order amount
+          example: 1299.99
+        shipping_address:
+          type: string
+          description: Formatted shipping address
+          example: 456 Oak Avenue, New York, NY, 10001, USA
+        billing_address:
+          type: string
+          description: Formatted billing address
+          example: 789 Pine Street, New York, NY, 10002, USA
+        shipping_locations_count:
+          type: integer
+          description: Number of shipping locations
+          example: 1
+        confirmation_message:
+          type: string
+          description: Order confirmation message
+          example: Order ORD-2024-002 confirmed for Jane Smith
+        order_summary:
+          type: string
+          description: Order summary
+          example: "1 item(s), Total: $1299.99"
+
+    # Processed Item Schema
+    ProcessedItem:
+      type: object
+      properties:
+        product_name:
+          type: string
+          example: Premium Laptop
+        product_id:
+          type: string
+          example: PROD-001
+        description:
+          type: string
+          example: High-performance laptop for professionals
+        quantity:
+          type: integer
+          example: 1
+        price:
+          type: number
+          format: float
+          example: 1299.99
+        subtotal:
+          type: number
+          format: float
+          example: 1299.99
+        specifications:
+          type: string
+          example: 1.5 kg, 35cm x 25cm x 2cm, Aluminum alloy
+
+    # Error Response Schema
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: Invalid order data
+        code:
+          type: string
+          description: Error code
+          example: INVALID_REQUEST
+        details:
+          type: string
+          description: Detailed error information
+          example: Missing required field 'customer.name'
+
+tags:
+  - name: Orders
+    description: Customer order processing with nested schema references
+
+# Made with Bob
+# Based on GitHub Issue #45755 - Nested Schema Reference Pattern
+# Demonstrates the scenario where shipping_locations.address references customer.address
+# Similar to how alerts.address referenced inquiry.address in the Moody's MCP tools

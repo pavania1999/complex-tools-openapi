@@ -1,0 +1,440 @@
+openapi: 3.0.0
+info:
+  title: Screening API
+  description: API for screening entities against watchlists and sanctions databases
+  version: 1.0.0
+servers:
+  - url: https://screening-api.onrender.com
+    description: Production server
+  - url: http://localhost:3000
+    description: Local development server
+
+paths:
+  /api/searchAndWait:
+    post:
+      summary: Search and wait for screening results
+      description: Performs a screening search for an entity and returns matching alerts
+      operationId: searchAndWait
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScreeningRequest'
+            example:
+              name: "John Doe Screening"
+              inquiry:
+                name: "John Doe"
+                address:
+                  addr1: "123 Main Street"
+                  city: "New York"
+                  stateProv: "NY"
+                  postalCode: "10001"
+                  countryCode:
+                    countryCodeValue: "US"
+                  country: "United States"
+                dob: "1980-01-15"
+                entityType: "person"
+                bvdId: null
+              alerts:
+                - custom_id: "alert-001"
+                  name: "John Doe"
+                  address:
+                    - addr1: "456 Oak Avenue"
+                      city: "Los Angeles"
+                      stateProv: "CA"
+                      postalCode: "90001"
+                      countryCode:
+                        countryCodeValue: "US"
+                      country: "United States"
+                  dob:
+                    - "1980-01-15"
+                  entityId: "ENT-12345"
+                  entityType: "person"
+                  alias:
+                    - "J. Doe"
+                    - "Johnny Doe"
+                  events:
+                    - category:
+                        categoryCode: "SANC"
+                        categoryDesc: "Sanctions"
+                      subCategory:
+                        categoryCode: "OFAC"
+                        categoryDesc: "OFAC List"
+                      eventDesc: "Added to sanctions list"
+                      eventDt: "2020-05-10"
+                  deceased:
+                    val: false
+                    date: null
+                  nationality:
+                    - "US"
+                  images:
+                    - "https://example.com/image1.jpg"
+                  identification:
+                    - idNumber: "123-45-6789"
+                      idType: "SSN"
+                      idSource: "US Government"
+                  alertConfidence: 0.95
+                  bvdId: null
+                  faceMatchSimilarity: 0.87
+      responses:
+        '200':
+          description: Screening completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  args:
+                    $ref: '#/components/schemas/ScreeningRequest'
+                  content:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          example: "text"
+                        text:
+                          type: string
+                          example: "Result"
+              example:
+                args:
+                  name: "John Doe Screening"
+                  inquiry:
+                    name: "John Doe"
+                    address:
+                      addr1: "123 Main Street"
+                      city: "New York"
+                      stateProv: "NY"
+                      postalCode: "10001"
+                      countryCode:
+                        countryCodeValue: "US"
+                      country: "United States"
+                    dob: "1980-01-15"
+                    entityType: "person"
+                    bvdId: null
+                  alerts:
+                    - custom_id: "alert-001"
+                      name: "John Doe"
+                      address:
+                        - addr1: "456 Oak Avenue"
+                          city: "Los Angeles"
+                          stateProv: "CA"
+                          postalCode: "90001"
+                          countryCode:
+                            countryCodeValue: "US"
+                          country: "United States"
+                      dob:
+                        - "1980-01-15"
+                      entityId: "ENT-12345"
+                      entityType: "person"
+                      alias:
+                        - "J. Doe"
+                      events:
+                        - category:
+                            categoryCode: "SANC"
+                            categoryDesc: "Sanctions"
+                          subCategory:
+                            categoryCode: "OFAC"
+                            categoryDesc: "OFAC List"
+                          eventDesc: "Added to sanctions list"
+                          eventDt: "2020-05-10"
+                      deceased:
+                        val: false
+                        date: null
+                      nationality:
+                        - "US"
+                      images:
+                        - "https://example.com/image1.jpg"
+                      identification:
+                        - idNumber: "123-45-6789"
+                          idType: "SSN"
+                          idSource: "US Government"
+                      alertConfidence: 0.95
+                      bvdId: null
+                      faceMatchSimilarity: 0.87
+                content:
+                  - type: "text"
+                    text: "Result"
+        '400':
+          description: Bad request - Invalid input data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid request body"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Internal server error"
+
+components:
+  schemas:
+    CountryCode:
+      type: object
+      required:
+        - countryCodeValue
+      properties:
+        countryCodeValue:
+          type: string
+          description: 2-letter country code
+          example: "US"
+
+    Address:
+      type: object
+      properties:
+        addr1:
+          type: string
+          nullable: true
+          example: "123 Main Street"
+        city:
+          type: string
+          nullable: true
+          example: "New York"
+        stateProv:
+          type: string
+          nullable: true
+          example: "NY"
+        postalCode:
+          type: string
+          nullable: true
+          example: "10001"
+        countryCode:
+          oneOf:
+            - $ref: '#/components/schemas/CountryCode'
+            - type: "null"
+        country:
+          type: string
+          nullable: true
+          example: "United States"
+
+    Inquiry:
+      type: object
+      required:
+        - name
+        - address
+        - entityType
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Name of the entity being screened
+          example: "John Doe"
+        address:
+          $ref: '#/components/schemas/Address'
+        dob:
+          type: string
+          description: Date of birth in YYYY-MM-DD format
+          example: "1980-01-15"
+        entityType:
+          type: string
+          enum:
+            - person
+            - organization
+            - unknown
+          example: "person"
+        bvdId:
+          type: string
+          nullable: true
+          description: Bureau van Dijk ID
+          example: null
+
+    Category:
+      type: object
+      required:
+        - categoryCode
+        - categoryDesc
+      properties:
+        categoryCode:
+          type: string
+          minLength: 1
+          example: "SANC"
+        categoryDesc:
+          type: string
+          minLength: 1
+          example: "Sanctions"
+
+    SubCategory:
+      oneOf:
+        - type: object
+          properties:
+            categoryCode:
+              type: string
+              example: "OFAC"
+            categoryDesc:
+              type: string
+              example: "OFAC List"
+        - type: "null"
+
+    Event:
+      type: object
+      required:
+        - category
+        - subCategory
+      properties:
+        category:
+          $ref: '#/components/schemas/Category'
+        subCategory:
+          $ref: '#/components/schemas/SubCategory'
+        eventDesc:
+          type: string
+          nullable: true
+          example: "Added to sanctions list"
+        eventDt:
+          type: string
+          nullable: true
+          example: "2020-05-10"
+
+    Deceased:
+      type: object
+      required:
+        - val
+        - date
+      properties:
+        val:
+          type: boolean
+          example: false
+        date:
+          type: string
+          nullable: true
+          example: null
+
+    Identification:
+      type: object
+      required:
+        - idNumber
+        - idType
+      properties:
+        idNumber:
+          type: string
+          minLength: 1
+          example: "123-45-6789"
+        idType:
+          type: string
+          minLength: 1
+          example: "SSN"
+        idSource:
+          type: string
+          example: "US Government"
+
+    Alert:
+      type: object
+      required:
+        - name
+        - address
+        - dob
+        - entityId
+        - entityType
+        - alias
+        - events
+        - deceased
+        - nationality
+        - images
+        - identification
+        - alertConfidence
+        - bvdId
+      properties:
+        custom_id:
+          type: string
+          example: "alert-001"
+        name:
+          type: string
+          minLength: 1
+          example: "John Doe"
+        address:
+          type: array
+          items:
+            $ref: '#/components/schemas/Address'
+        dob:
+          type: array
+          items:
+            type: string
+          example:
+            - "1980-01-15"
+        entityId:
+          type: string
+          minLength: 1
+          example: "ENT-12345"
+        entityType:
+          type: string
+          enum:
+            - person
+            - organization
+            - unknown
+          example: "person"
+        alias:
+          type: array
+          items:
+            type: string
+          example:
+            - "J. Doe"
+            - "Johnny Doe"
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+        deceased:
+          $ref: '#/components/schemas/Deceased'
+        nationality:
+          type: array
+          items:
+            type: string
+          example:
+            - "US"
+        images:
+          type: array
+          items:
+            type: string
+          example:
+            - "https://example.com/image1.jpg"
+        identification:
+          type: array
+          items:
+            $ref: '#/components/schemas/Identification'
+        alertConfidence:
+          type: number
+          minimum: 0
+          maximum: 1
+          example: 0.95
+        bvdId:
+          type: string
+          nullable: true
+          example: null
+        faceMatchSimilarity:
+          oneOf:
+            - type: number
+              minimum: 0
+              maximum: 1
+            - type: "null"
+          example: 0.87
+
+    ScreeningRequest:
+      type: object
+      required:
+        - name
+        - inquiry
+        - alerts
+      properties:
+        name:
+          type: string
+          description: Name of the screening request
+          example: "John Doe Screening"
+        inquiry:
+          $ref: '#/components/schemas/Inquiry'
+        alerts:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Alert'
+
+# Made with Bob

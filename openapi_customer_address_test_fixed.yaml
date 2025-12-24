@@ -1,0 +1,170 @@
+openapi: 3.0.0
+info:
+  title: Customer Address Test API
+  description: Simplified API to test $ref with single Address usage
+  version: 1.0.0
+
+servers:
+  - url: https://complex-tools-openapi.onrender.com/api/v1
+    description: Test Server
+
+paths:
+  /orders/process:
+    post:
+      summary: Process customer order with address
+      description: Test endpoint with single Address reference (matches deployed server)
+      operationId: processOrder
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+            example:
+              customer:
+                name: Jane Smith
+                email: jane.smith@email.com
+                address:
+                  street: 456 Oak Avenue
+                  city: New York
+                  state: NY
+                  zipcode: "10001"
+                  country: USA
+              order:
+                order_id: ORD-001
+                items:
+                  - product: Laptop
+                    quantity: 1
+                    price: 999.99
+      responses:
+        '200':
+          description: Order processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    OrderRequest:
+      type: object
+      required:
+        - customer
+        - order
+      properties:
+        customer:
+          $ref: '#/components/schemas/Customer'
+        order:
+          $ref: '#/components/schemas/Order'
+
+    Customer:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Customer full name
+          example: Jane Smith
+        email:
+          type: string
+          format: email
+          description: Customer email address
+          example: jane.smith@email.com
+        address:
+          $ref: '#/components/schemas/Address'
+
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+          description: Street address
+          example: 456 Oak Avenue
+        city:
+          type: string
+          description: City name
+          example: New York
+        state:
+          type: string
+          description: State or province
+          example: NY
+        zipcode:
+          type: string
+          description: Postal code
+          example: "10001"
+        country:
+          type: string
+          description: Country name
+          example: USA
+
+    Order:
+      type: object
+      properties:
+        order_id:
+          type: string
+          description: Order ID
+          example: ORD-001
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+
+    OrderItem:
+      type: object
+      properties:
+        product:
+          type: string
+          description: Product name
+          example: Laptop
+        quantity:
+          type: integer
+          description: Quantity
+          example: 1
+        price:
+          type: number
+          format: float
+          description: Price
+          example: 999.99
+
+    OrderResponse:
+      type: object
+      properties:
+        confirmation:
+          type: string
+          description: Order confirmation message
+        customer_summary:
+          type: string
+          description: Customer summary
+        order_summary:
+          type: string
+          description: Order summary
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: Invalid customer data
+        code:
+          type: string
+          description: Error code
+          example: INVALID_REQUEST
+        details:
+          type: string
+          description: Error details
+
+tags:
+  - name: Orders
+    description: Order processing operations
+
+# Made with Bob

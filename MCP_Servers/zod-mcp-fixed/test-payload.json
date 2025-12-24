@@ -1,0 +1,80 @@
+{
+    "name": "John Doe Screening",
+    "inquiry": {
+        "name": "John Doe",
+        "address": {
+            "addr1": "123 Main Street",
+            "city": "New York",
+            "stateProv": "NY",
+            "postalCode": "10001",
+            "countryCode": {
+                "countryCodeValue": "US"
+            },
+            "country": "United States"
+        },
+        "dob": "1980-01-15",
+        "entityType": "person",
+        "bvdId": null
+    },
+    "alerts": [
+        {
+            "custom_id": "alert-001",
+            "name": "John Doe",
+            "address": [
+                {
+                    "addr1": "456 Oak Avenue",
+                    "city": "Los Angeles",
+                    "stateProv": "CA",
+                    "postalCode": "90001",
+                    "countryCode": {
+                        "countryCodeValue": "US"
+                    },
+                    "country": "United States"
+                }
+            ],
+            "dob": [
+                "1980-01-15"
+            ],
+            "entityId": "ENT-12345",
+            "entityType": "person",
+            "alias": [
+                "J. Doe",
+                "Johnny Doe"
+            ],
+            "events": [
+                {
+                    "category": {
+                        "categoryCode": "SANC",
+                        "categoryDesc": "Sanctions"
+                    },
+                    "subCategory": {
+                        "categoryCode": "OFAC",
+                        "categoryDesc": "OFAC List"
+                    },
+                    "eventDesc": "Added to sanctions list",
+                    "eventDt": "2020-05-10"
+                }
+            ],
+            "deceased": {
+                "val": false,
+                "date": null
+            },
+            "nationality": [
+                "US"
+            ],
+            "images": [
+                "https://example.com/image1.jpg"
+            ],
+            "identification": [
+                {
+                    "idNumber": "123-45-6789",
+                    "idType": "SSN",
+                    "idSource": "US Government"
+                }
+            ],
+            "alertConfidence": 0.95,
+            "bvdId": null,
+            "faceMatchSimilarity": 0.87
+        }
+    ]
+}

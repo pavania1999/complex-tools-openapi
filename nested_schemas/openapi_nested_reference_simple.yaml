@@ -1,0 +1,345 @@
+openapi: 3.0.0
+info:
+  title: Nested Reference Simple Test API (GitHub Issue #45755)
+  description: |
+    Test API demonstrating the exact nested reference pattern from Moody's case.
+    Uses existing customer order structure where billing_address references 
+    shipping_address using $ref: "#/properties/order/properties/shipping_address"
+    
+    **Based on**: https://github.ibm.com/WatsonOrchestrate/wo-tracker/issues/45755#issuecomment-145084383
+    
+    **Pattern**: order.shipping_address is defined inline, order.billing_address references it
+    
+    **Deployed on Render.com**
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: https://complex-tools-openapi.onrender.com/api/v1
+    description: Render.com Production Deployment
+
+paths:
+  /orders/process:
+    post:
+      summary: Process customer order with internal address reference
+      description: |
+        Process a customer order where billing_address references shipping_address
+        within the same schema using $ref: "#/properties/order/properties/shipping_address"
+      operationId: processOrderInternalRef
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequestWithInternalRef'
+            examples:
+              basicOrder:
+                summary: Order with internal address reference
+                value:
+                  customer:
+                    name: Jane Smith
+                    email: jane.smith@email.com
+                    address:
+                      street: 456 Oak Avenue
+                      city: New York
+                      state: NY
+                      zipcode: "10001"
+                      country: USA
+                    contact:
+                      phone: "+1-555-0200"
+                      mobile: "+1-555-0201"
+                  order:
+                    order_id: ORD-2024-002
+                    order_date: "2024-01-16"
+                    items:
+                      - product:
+                          product_id: PROD-001
+                          name: Premium Laptop
+                          details:
+                            description: High-performance laptop
+                            specifications:
+                              weight: 1.5 kg
+                              dimensions: 35cm x 25cm x 2cm
+                              material: Aluminum alloy
+                        quantity: 1
+                        price: 1299.99
+                    shipping_address:
+                      street: 456 Oak Avenue
+                      city: New York
+                      state: NY
+                      zipcode: "10001"
+                      country: USA
+                    billing_address:
+                      street: 456 Oak Avenue
+                      city: New York
+                      state: NY
+                      zipcode: "10001"
+                      country: USA
+      responses:
+        '200':
+          description: Order processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  customer_name:
+                    type: string
+                    example: Jane Smith
+                  customer_email:
+                    type: string
+                    example: jane.smith@email.com
+                  customer_address:
+                    type: string
+                    example: 456 Oak Avenue, New York, NY, 10001, USA
+                  phone:
+                    type: string
+                    example: "+1-555-0200"
+                  mobile:
+                    type: string
+                    example: "+1-555-0201"
+                  order_id:
+                    type: string
+                    example: ORD-2024-002
+                  order_date:
+                    type: string
+                    example: "2024-01-16"
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        product_name:
+                          type: string
+                          example: Premium Laptop
+                        product_id:
+                          type: string
+                          example: PROD-001
+                        description:
+                          type: string
+                          example: High-performance laptop
+                        quantity:
+                          type: integer
+                          example: 1
+                        price:
+                          type: number
+                          format: float
+                          example: 1299.99
+                        subtotal:
+                          type: number
+                          format: float
+                          example: 1299.99
+                        specifications:
+                          type: string
+                          example: 1.5 kg, 35cm x 25cm x 2cm, Aluminum alloy
+                  total_items:
+                    type: integer
+                    example: 1
+                  total_amount:
+                    type: number
+                    format: float
+                    example: 1299.99
+                  shipping_address:
+                    type: string
+                    example: 456 Oak Avenue, New York, NY, 10001, USA
+                  billing_address:
+                    type: string
+                    example: 456 Oak Avenue, New York, NY, 10001, USA
+                  confirmation_message:
+                    type: string
+                    example: Order ORD-2024-002 confirmed for Jane Smith
+                  order_summary:
+                    type: string
+                    example: "1 item(s), Total: $1299.99"
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid order data
+                  code:
+                    type: string
+                    example: INVALID_REQUEST
+                  details:
+                    type: string
+                    example: Missing required field 'customer.name'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Internal server error
+                  code:
+                    type: string
+                    example: INTERNAL_ERROR
+                  details:
+                    type: string
+                    example: Error processing request
+
+components:
+  schemas:
+    OrderRequestWithInternalRef:
+      type: object
+      required:
+        - customer
+        - order
+      properties:
+        customer:
+          type: object
+          required:
+            - name
+          properties:
+            name:
+              type: string
+              description: Customer full name
+              example: Jane Smith
+            email:
+              type: string
+              format: email
+              description: Customer email address
+              example: jane.smith@email.com
+            address:
+              type: object
+              properties:
+                street:
+                  type: string
+                  example: 456 Oak Avenue
+                city:
+                  type: string
+                  example: New York
+                state:
+                  type: string
+                  example: NY
+                zipcode:
+                  type: string
+                  example: "10001"
+                country:
+                  type: string
+                  example: USA
+              additionalProperties: false
+            contact:
+              type: object
+              properties:
+                phone:
+                  type: string
+                  example: "+1-555-0200"
+                mobile:
+                  type: string
+                  example: "+1-555-0201"
+              additionalProperties: false
+          additionalProperties: false
+        order:
+          type: object
+          required:
+            - order_id
+          properties:
+            order_id:
+              type: string
+              description: Unique order identifier
+              example: ORD-2024-002
+            order_date:
+              type: string
+              format: date
+              description: Order date
+              example: "2024-01-16"
+            items:
+              type: array
+              items:
+                type: object
+                required:
+                  - product
+                  - quantity
+                  - price
+                properties:
+                  product:
+                    type: object
+                    properties:
+                      product_id:
+                        type: string
+                        example: PROD-001
+                      name:
+                        type: string
+                        example: Premium Laptop
+                      details:
+                        type: object
+                        properties:
+                          description:
+                            type: string
+                            example: High-performance laptop
+                          specifications:
+                            type: object
+                            properties:
+                              weight:
+                                type: string
+                                example: 1.5 kg
+                              dimensions:
+                                type: string
+                                example: 35cm x 25cm x 2cm
+                              material:
+                                type: string
+                                example: Aluminum alloy
+                            additionalProperties: false
+                        additionalProperties: false
+                    additionalProperties: false
+                  quantity:
+                    type: integer
+                    minimum: 1
+                    example: 1
+                  price:
+                    type: number
+                    format: float
+                    minimum: 0
+                    example: 1299.99
+                additionalProperties: false
+            shipping_address:
+              type: object
+              description: Primary shipping address (referenced by billing_address)
+              properties:
+                street:
+                  type: string
+                  description: Street address
+                  example: 456 Oak Avenue
+                city:
+                  type: string
+                  description: City name
+                  example: New York
+                state:
+                  type: string
+                  description: State or province
+                  example: NY
+                zipcode:
+                  type: string
+                  description: Postal code
+                  example: "10001"
+                country:
+                  type: string
+                  description: Country name
+                  example: USA
+              required:
+                - street
+                - city
+              additionalProperties: false
+            billing_address:
+              $ref: "#/components/schemas/OrderRequestWithInternalRef/properties/order/properties/shipping_address"
+          additionalProperties: false
+      additionalProperties: false
+
+tags:
+  - name: Orders
+    description: Customer order processing operations
+
+# Made with Bob
+# Demonstrates exact pattern from GitHub Issue #45755
+# billing_address uses $ref to shipping_address within the same schema

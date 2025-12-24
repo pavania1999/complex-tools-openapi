@@ -1,0 +1,29 @@
+{
+    "name": "customer-order-api-mcp",
+    "version": "1.0.0",
+    "description": "MCP Server for Customer Order Processing API with nested schemas",
+    "type": "module",
+    "main": "build/index.js",
+    "scripts": {
+        "build": "tsc",
+        "prepare": "npm run build",
+        "watch": "tsc --watch"
+    },
+    "keywords": [
+        "mcp",
+        "model-context-protocol",
+        "customer-order",
+        "openapi",
+        "nested-schemas"
+    ],
+    "author": "IBM Bob",
+    "license": "MIT",
+    "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.0.4",
+        "axios": "^1.7.9"
+    },
+    "devDependencies": {
+        "@types/node": "^22.10.2",
+        "typescript": "^5.7.2"
+    }
+}

@@ -1,0 +1,400 @@
+openapi: 3.0.0
+info:
+  title: Customer Order Processing API (Deployed)
+  description: |
+    Process customer orders with nested data structures including customer information,
+    addresses, and product specifications. Supports basic nesting (3-level), deep nesting
+    (5-level), and schema references ($ref) for address reuse.
+    
+    **Deployed on Render.com**
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: https://complex-tools-openapi.onrender.com/api/v1
+    description: Render.com Production Deployment
+
+paths:
+  /orders/process:
+    post:
+      summary: Process customer order
+      description: |
+        Process a customer order with complete nested information including customer details,
+        shipping/billing addresses, and product specifications. Returns a formatted order
+        confirmation with all details.
+      operationId: processCustomerOrder
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+            examples:
+              basicOrder:
+                summary: Basic order with single item
+                value:
+                  customer:
+                    name: Jane Smith
+                    email: jane.smith@email.com
+                    address:
+                      street: 456 Oak Avenue
+                      city: New York
+                      state: NY
+                      zipcode: "10001"
+                      country: USA
+                    contact:
+                      phone: "+1-555-0200"
+                      mobile: "+1-555-0201"
+                  order:
+                    order_id: ORD-2024-002
+                    order_date: "2024-01-16"
+                    items:
+                      - product:
+                          product_id: PROD-001
+                          name: Premium Laptop
+                          details:
+                            description: High-performance laptop for professionals
+                            specifications:
+                              weight: 1.5 kg
+                              dimensions: 35cm x 25cm x 2cm
+                              material: Aluminum alloy
+                        quantity: 1
+                        price: 1299.99
+                    shipping_address:
+                      street: 456 Oak Avenue
+                      city: New York
+                      state: NY
+                      zipcode: "10001"
+                      country: USA
+                    billing_address:
+                      street: 789 Pine Street
+                      city: New York
+                      state: NY
+                      zipcode: "10002"
+                      country: USA
+      responses:
+        '200':
+          description: Order processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+              examples:
+                successfulOrder:
+                  summary: Successful order confirmation
+                  value:
+                    customer_name: Jane Smith
+                    customer_email: jane.smith@email.com
+                    customer_address: 456 Oak Avenue, New York, NY, 10001, USA
+                    phone: "+1-555-0200"
+                    mobile: "+1-555-0201"
+                    order_id: ORD-2024-002
+                    order_date: "2024-01-16"
+                    items:
+                      - product_name: Premium Laptop
+                        product_id: PROD-001
+                        description: High-performance laptop for professionals
+                        quantity: 1
+                        price: 1299.99
+                        subtotal: 1299.99
+                        specifications: 1.5 kg, 35cm x 25cm x 2cm, Aluminum alloy
+                    total_items: 1
+                    total_amount: 1299.99
+                    shipping_address: 456 Oak Avenue, New York, NY, 10001, USA
+                    billing_address: 789 Pine Street, New York, NY, 10002, USA
+                    confirmation_message: Order ORD-2024-002 confirmed for Jane Smith
+                    order_summary: "1 item(s), Total: $1299.99"
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    # Main Request Schema
+    OrderRequest:
+      type: object
+      required:
+        - customer
+        - order
+      properties:
+        customer:
+          $ref: '#/components/schemas/Customer'
+        order:
+          $ref: '#/components/schemas/Order'
+
+    # Customer Schema (Basic Nesting - 3 levels)
+    Customer:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Customer full name
+          example: Jane Smith
+        email:
+          type: string
+          format: email
+          description: Customer email address
+          example: jane.smith@email.com
+        address:
+          $ref: '#/components/schemas/Address'
+        contact:
+          $ref: '#/components/schemas/Contact'
+
+    # Address Schema (Reusable via $ref)
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+          description: Street address
+          example: 456 Oak Avenue
+        city:
+          type: string
+          description: City name
+          example: New York
+        state:
+          type: string
+          description: State or province
+          example: NY
+        zipcode:
+          type: string
+          description: Postal code
+          example: "10001"
+        country:
+          type: string
+          description: Country name
+          example: USA
+
+    # Contact Schema
+    Contact:
+      type: object
+      properties:
+        phone:
+          type: string
+          description: Primary phone number
+          example: "+1-555-0200"
+        mobile:
+          type: string
+          description: Mobile phone number
+          example: "+1-555-0201"
+
+    # Order Schema (Deep Nesting - 5 levels)
+    Order:
+      type: object
+      required:
+        - order_id
+      properties:
+        order_id:
+          type: string
+          description: Unique order identifier
+          example: ORD-2024-002
+        order_date:
+          type: string
+          format: date
+          description: Order date
+          example: "2024-01-16"
+        items:
+          type: array
+          description: List of order items
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        shipping_address:
+          $ref: '#/components/schemas/Address'
+        billing_address:
+          $ref: '#/components/schemas/Address'
+
+    # Order Item Schema (Level 3)
+    OrderItem:
+      type: object
+      required:
+        - product
+        - quantity
+        - price
+      properties:
+        product:
+          $ref: '#/components/schemas/Product'
+        quantity:
+          type: integer
+          minimum: 1
+          description: Quantity ordered
+          example: 1
+        price:
+          type: number
+          format: float
+          minimum: 0
+          description: Unit price
+          example: 1299.99
+
+    # Product Schema (Level 4)
+    Product:
+      type: object
+      required:
+        - name
+      properties:
+        product_id:
+          type: string
+          description: Product identifier
+          example: PROD-001
+        name:
+          type: string
+          description: Product name
+          example: Premium Laptop
+        details:
+          $ref: '#/components/schemas/ProductDetails'
+
+    # Product Details Schema (Level 5)
+    ProductDetails:
+      type: object
+      properties:
+        description:
+          type: string
+          description: Product description
+          example: High-performance laptop for professionals
+        specifications:
+          $ref: '#/components/schemas/ProductSpecifications'
+
+    # Product Specifications Schema (Level 6 - deepest nesting)
+    ProductSpecifications:
+      type: object
+      properties:
+        weight:
+          type: string
+          description: Product weight
+          example: 1.5 kg
+        dimensions:
+          type: string
+          description: Product dimensions
+          example: 35cm x 25cm x 2cm
+        material:
+          type: string
+          description: Product material
+          example: Aluminum alloy
+
+    # Response Schema
+    OrderResponse:
+      type: object
+      properties:
+        customer_name:
+          type: string
+          description: Customer name
+          example: Jane Smith
+        customer_email:
+          type: string
+          description: Customer email
+          example: jane.smith@email.com
+        customer_address:
+          type: string
+          description: Formatted customer address
+          example: 456 Oak Avenue, New York, NY, 10001, USA
+        phone:
+          type: string
+          description: Customer phone
+          example: "+1-555-0200"
+        mobile:
+          type: string
+          description: Customer mobile
+          example: "+1-555-0201"
+        order_id:
+          type: string
+          description: Order ID
+          example: ORD-2024-002
+        order_date:
+          type: string
+          description: Order date
+          example: "2024-01-16"
+        items:
+          type: array
+          description: Processed order items
+          items:
+            $ref: '#/components/schemas/ProcessedItem'
+        total_items:
+          type: integer
+          description: Total number of items
+          example: 1
+        total_amount:
+          type: number
+          format: float
+          description: Total order amount
+          example: 1299.99
+        shipping_address:
+          type: string
+          description: Formatted shipping address
+          example: 456 Oak Avenue, New York, NY, 10001, USA
+        billing_address:
+          type: string
+          description: Formatted billing address
+          example: 789 Pine Street, New York, NY, 10002, USA
+        confirmation_message:
+          type: string
+          description: Order confirmation message
+          example: Order ORD-2024-002 confirmed for Jane Smith
+        order_summary:
+          type: string
+          description: Order summary
+          example: "1 item(s), Total: $1299.99"
+
+    # Processed Item Schema
+    ProcessedItem:
+      type: object
+      properties:
+        product_name:
+          type: string
+          example: Premium Laptop
+        product_id:
+          type: string
+          example: PROD-001
+        description:
+          type: string
+          example: High-performance laptop for professionals
+        quantity:
+          type: integer
+          example: 1
+        price:
+          type: number
+          format: float
+          example: 1299.99
+        subtotal:
+          type: number
+          format: float
+          example: 1299.99
+        specifications:
+          type: string
+          example: 1.5 kg, 35cm x 25cm x 2cm, Aluminum alloy
+
+    # Error Response Schema
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: Invalid order data
+        code:
+          type: string
+          description: Error code
+          example: INVALID_REQUEST
+        details:
+          type: string
+          description: Detailed error information
+          example: Missing required field 'customer.name'
+
+tags:
+  - name: Orders
+    description: Customer order processing operations
+
+# Made with Bob
