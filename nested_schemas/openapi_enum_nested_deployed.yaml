@@ -1,0 +1,578 @@
+openapi: 3.0.0
+info:
+  title: Enum Nested Schemas API (Deployed)
+  description: |
+    API for testing enum validation within nested structures at multiple levels.
+    
+    **Test Groups Covered:**
+    - Group 4: Enums in Nested Schemas
+      - Simple Enums: status and type fields with enum constraints
+      - Nested Enums: customer type and address country with enum validation
+      - Combined Test: Multi-level enum validation
+    
+    **Deployed on Render.com**
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: https://complex-tools-openapi.onrender.com/api/v1
+    description: Render.com Production Deployment
+
+paths:
+  /account/status:
+    post:
+      summary: Update account status with simple enums
+      description: |
+        Tests simple enum validation at root level.
+        Returns formatted account status confirmation.
+      operationId: updateAccountStatus
+      tags:
+        - Account Management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountStatusRequest'
+            examples:
+              validPersonalActive:
+                summary: Valid personal account - active
+                value:
+                  status: "active"
+                  type: "personal"
+                  account_id: "ACC-12345"
+              validBusinessInactive:
+                summary: Valid business account - inactive
+                value:
+                  status: "inactive"
+                  type: "business"
+                  account_id: "ACC-67890"
+      responses:
+        '200':
+          description: Account status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountStatusResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Account status updated successfully"
+                    account_id: "ACC-12345"
+                    status: "active"
+                    type: "personal"
+                    updated_at: "2024-01-29T08:00:00Z"
+                    validation_summary: "All enum validations passed: status=active, type=personal"
+        '400':
+          description: Invalid enum value provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /customer/profile:
+    post:
+      summary: Create customer profile with nested enums
+      description: |
+        Tests enum validation within nested structures.
+        Returns formatted customer profile with all nested data.
+      operationId: createCustomerProfile
+      tags:
+        - Customer Management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerProfileRequest'
+            examples:
+              validIndividualUS:
+                summary: Valid individual customer in US
+                value:
+                  customer_id: "CUST-001"
+                  customer:
+                    name: "John Doe"
+                    email: "john.doe@example.com"
+                    type: "individual"
+                    address:
+                      street: "123 Main St"
+                      city: "New York"
+                      state: "NY"
+                      zipcode: "10001"
+                      country: "US"
+                    contact:
+                      phone: "+1-555-0100"
+                      mobile: "+1-555-0101"
+              validCorporateCA:
+                summary: Valid corporate customer in Canada
+                value:
+                  customer_id: "CUST-002"
+                  customer:
+                    name: "Acme Corporation"
+                    email: "contact@acme.com"
+                    type: "corporate"
+                    address:
+                      street: "456 Business Ave"
+                      city: "Toronto"
+                      state: "ON"
+                      zipcode: "M5H 2N2"
+                      country: "CA"
+                    contact:
+                      phone: "+1-416-555-0200"
+      responses:
+        '201':
+          description: Customer profile created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerProfileResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Customer profile created successfully"
+                    customer_id: "CUST-001"
+                    customer_name: "John Doe"
+                    customer_email: "john.doe@example.com"
+                    customer_type: "individual"
+                    address_formatted: "123 Main St, New York, NY, 10001, US"
+                    country: "US"
+                    contact_phone: "+1-555-0100"
+                    contact_mobile: "+1-555-0101"
+                    validation_summary: "All enum validations passed: type=individual, country=US"
+                    created_at: "2024-01-29T08:00:00Z"
+        '400':
+          description: Invalid enum value in request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /customer/multi-level-enum:
+    post:
+      summary: Test multi-level enum validation
+      description: |
+        Combined test for enum validation at multiple nesting levels.
+        Returns comprehensive validation report.
+      operationId: createMultiLevelEnumProfile
+      tags:
+        - Customer Management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MultiLevelEnumRequest'
+            examples:
+              allValidEnums:
+                summary: All enum values valid
+                value:
+                  profile_id: "PROF-001"
+                  status: "active"
+                  customer:
+                    name: "Alice Johnson"
+                    email: "alice@example.com"
+                    type: "individual"
+                    address:
+                      street: "321 Oak Ave"
+                      city: "Seattle"
+                      state: "WA"
+                      zipcode: "98101"
+                      country: "US"
+                    contact:
+                      phone: "+1-206-555-0300"
+                      preference: "email"
+                      timezone: "PST"
+      responses:
+        '201':
+          description: Multi-level enum profile created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MultiLevelEnumResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Profile created with all enum validations passed"
+                    profile_id: "PROF-001"
+                    profile_status: "active"
+                    customer_name: "Alice Johnson"
+                    customer_email: "alice@example.com"
+                    customer_type: "individual"
+                    address_formatted: "321 Oak Ave, Seattle, WA, 98101, US"
+                    country: "US"
+                    contact_phone: "+1-206-555-0300"
+                    contact_preference: "email"
+                    contact_timezone: "PST"
+                    enum_validation_report:
+                      level_0_status: "active (valid)"
+                      level_1_customer_type: "individual (valid)"
+                      level_2_address_country: "US (valid)"
+                      level_3_contact_preference: "email (valid)"
+                      total_enum_fields: 4
+                      all_valid: true
+                    created_at: "2024-01-29T08:00:00Z"
+        '400':
+          description: One or more enum validation failures
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnumValidationErrorResponse'
+
+components:
+  schemas:
+    # Account Status Request
+    AccountStatusRequest:
+      type: object
+      required:
+        - status
+        - type
+        - account_id
+      properties:
+        account_id:
+          type: string
+          description: Unique account identifier
+          example: "ACC-12345"
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+          description: Account status (simple enum at root level)
+          example: "active"
+        type:
+          type: string
+          enum:
+            - personal
+            - business
+          description: Account type (simple enum at root level)
+          example: "personal"
+
+    # Account Status Response
+    AccountStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Account status updated successfully"
+        account_id:
+          type: string
+          example: "ACC-12345"
+        status:
+          type: string
+          example: "active"
+        type:
+          type: string
+          example: "personal"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-29T08:00:00Z"
+        validation_summary:
+          type: string
+          example: "All enum validations passed: status=active, type=personal"
+
+    # Customer Profile Request
+    CustomerProfileRequest:
+      type: object
+      required:
+        - customer_id
+        - customer
+      properties:
+        customer_id:
+          type: string
+          description: Unique customer identifier
+          example: "CUST-001"
+        customer:
+          $ref: '#/components/schemas/Customer'
+
+    # Customer Schema
+    Customer:
+      type: object
+      required:
+        - name
+        - type
+        - address
+      properties:
+        name:
+          type: string
+          description: Customer full name or company name
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          description: Customer email address
+          example: "john.doe@example.com"
+        type:
+          type: string
+          enum:
+            - individual
+            - corporate
+          description: Customer type (nested enum - level 1)
+          example: "individual"
+        address:
+          $ref: '#/components/schemas/Address'
+        contact:
+          $ref: '#/components/schemas/Contact'
+
+    # Address Schema
+    Address:
+      type: object
+      required:
+        - street
+        - city
+        - country
+      properties:
+        street:
+          type: string
+          description: Street address
+          example: "123 Main St"
+        city:
+          type: string
+          description: City name
+          example: "New York"
+        state:
+          type: string
+          description: State or province code
+          example: "NY"
+        zipcode:
+          type: string
+          description: Postal code
+          example: "10001"
+        country:
+          type: string
+          enum:
+            - US
+            - CA
+            - UK
+          description: Country code (nested enum - level 2)
+          example: "US"
+
+    # Contact Schema
+    Contact:
+      type: object
+      properties:
+        phone:
+          type: string
+          description: Primary phone number
+          example: "+1-555-0100"
+        mobile:
+          type: string
+          description: Mobile phone number
+          example: "+1-555-0101"
+        preference:
+          type: string
+          enum:
+            - email
+            - phone
+            - sms
+          description: Contact preference (nested enum - level 3)
+          example: "email"
+        timezone:
+          type: string
+          description: Preferred timezone
+          example: "PST"
+
+    # Customer Profile Response
+    CustomerProfileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Customer profile created successfully"
+        customer_id:
+          type: string
+          example: "CUST-001"
+        customer_name:
+          type: string
+          example: "John Doe"
+        customer_email:
+          type: string
+          example: "john.doe@example.com"
+        customer_type:
+          type: string
+          example: "individual"
+        address_formatted:
+          type: string
+          example: "123 Main St, New York, NY, 10001, US"
+        country:
+          type: string
+          example: "US"
+        contact_phone:
+          type: string
+          example: "+1-555-0100"
+        contact_mobile:
+          type: string
+          example: "+1-555-0101"
+        validation_summary:
+          type: string
+          example: "All enum validations passed: type=individual, country=US"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-29T08:00:00Z"
+
+    # Multi-Level Enum Request
+    MultiLevelEnumRequest:
+      type: object
+      required:
+        - profile_id
+        - status
+        - customer
+      properties:
+        profile_id:
+          type: string
+          description: Unique profile identifier
+          example: "PROF-001"
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+          description: Profile status (root level enum)
+          example: "active"
+        customer:
+          $ref: '#/components/schemas/Customer'
+
+    # Multi-Level Enum Response
+    MultiLevelEnumResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Profile created with all enum validations passed"
+        profile_id:
+          type: string
+          example: "PROF-001"
+        profile_status:
+          type: string
+          example: "active"
+        customer_name:
+          type: string
+          example: "Alice Johnson"
+        customer_email:
+          type: string
+          example: "alice@example.com"
+        customer_type:
+          type: string
+          example: "individual"
+        address_formatted:
+          type: string
+          example: "321 Oak Ave, Seattle, WA, 98101, US"
+        country:
+          type: string
+          example: "US"
+        contact_phone:
+          type: string
+          example: "+1-206-555-0300"
+        contact_preference:
+          type: string
+          example: "email"
+        contact_timezone:
+          type: string
+          example: "PST"
+        enum_validation_report:
+          type: object
+          properties:
+            level_0_status:
+              type: string
+              example: "active (valid)"
+            level_1_customer_type:
+              type: string
+              example: "individual (valid)"
+            level_2_address_country:
+              type: string
+              example: "US (valid)"
+            level_3_contact_preference:
+              type: string
+              example: "email (valid)"
+            total_enum_fields:
+              type: integer
+              example: 4
+            all_valid:
+              type: boolean
+              example: true
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-29T08:00:00Z"
+
+    # Error Response
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "VALIDATION_ERROR"
+        message:
+          type: string
+          example: "Invalid enum value provided"
+        field:
+          type: string
+          description: Field that failed validation
+          example: "status"
+        provided_value:
+          type: string
+          description: The invalid value that was provided
+          example: "pending"
+        allowed_values:
+          type: array
+          items:
+            type: string
+          description: List of allowed enum values
+          example: ["active", "inactive"]
+
+    # Enum Validation Error Response
+    EnumValidationErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "ENUM_VALIDATION_ERROR"
+        message:
+          type: string
+          example: "One or more enum validation failures detected"
+        validation_failures:
+          type: array
+          items:
+            type: object
+            properties:
+              field_path:
+                type: string
+                description: JSON path to the field that failed
+                example: "customer.address.country"
+              provided_value:
+                type: string
+                description: The invalid value provided
+                example: "FR"
+              allowed_values:
+                type: array
+                items:
+                  type: string
+                description: List of allowed values for this enum
+                example: ["US", "CA", "UK"]
+              nesting_level:
+                type: integer
+                description: Depth of nesting where validation failed
+                example: 2
+
+tags:
+  - name: Account Management
+    description: Account status and type management operations
+  - name: Customer Management
+    description: Customer profile operations with nested enum validation
+
+# Made with Bob

@@ -1,0 +1,544 @@
+openapi: 3.0.0
+info:
+  title: Conversational Multi-Field Slot Filling API (Deployed)
+  description: |
+    API for testing incremental data collection across multiple conversational turns.
+    
+    **Test Group Covered:**
+    - Group 5: Conversational (Multi-Field Slot Filling)
+      - Building nested structure through conversation
+      - Incremental data collection
+      - Partial updates and completeness validation
+    
+    **Deployed on Render.com**
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: https://complex-tools-openapi.onrender.com/api/v1
+    description: Render.com Production Deployment
+
+paths:
+  /conversation/profile/start:
+    post:
+      summary: Start a new conversational profile creation session
+      description: |
+        Initiates a new profile creation session with minimal required data.
+        Returns a session_id for subsequent updates and current profile state.
+      operationId: startProfileSession
+      tags:
+        - Conversational Flow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionStartRequest'
+            examples:
+              minimalStart:
+                summary: Start with just a name
+                value:
+                  name: "John Doe"
+      responses:
+        '201':
+          description: Session started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+              examples:
+                sessionCreated:
+                  value:
+                    session_id: "SESSION-001"
+                    status: "in_progress"
+                    completeness_percentage: 10
+                    profile:
+                      name: "John Doe"
+                    missing_required_fields:
+                      - email
+                      - type
+                      - address.street
+                      - address.city
+                      - address.country
+                    missing_optional_fields:
+                      - address.state
+                      - address.zipcode
+                      - contact.phone
+                      - contact.mobile
+                    next_prompt: "Great! What's your email address?"
+                    conversation_turn: 1
+                    created_at: "2024-01-29T08:00:00Z"
+
+  /conversation/profile/{session_id}/update:
+    patch:
+      summary: Update profile with additional information
+      description: |
+        Incrementally add or update fields in the profile.
+        Supports partial updates without overwriting existing data.
+      operationId: updateProfileSession
+      tags:
+        - Conversational Flow
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Session identifier from start endpoint
+          example: "SESSION-001"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdateRequest'
+            examples:
+              turn2_addEmailAndType:
+                summary: Turn 2 - Add email and customer type
+                value:
+                  email: "john.doe@example.com"
+                  type: "individual"
+              turn3_addAddressPartial:
+                summary: Turn 3 - Start adding address (partial)
+                value:
+                  address:
+                    street: "123 Main St"
+                    city: "New York"
+              turn4_completeAddress:
+                summary: Turn 4 - Complete address with remaining fields
+                value:
+                  address:
+                    state: "NY"
+                    zipcode: "10001"
+                    country: "US"
+              turn5_addContact:
+                summary: Turn 5 - Add contact information
+                value:
+                  contact:
+                    phone: "+1-555-0100"
+                    mobile: "+1-555-0101"
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+              examples:
+                turn2Response:
+                  summary: After adding email and type
+                  value:
+                    session_id: "SESSION-001"
+                    status: "in_progress"
+                    completeness_percentage: 30
+                    profile:
+                      name: "John Doe"
+                      email: "john.doe@example.com"
+                      type: "individual"
+                    missing_required_fields:
+                      - address.street
+                      - address.city
+                      - address.country
+                    missing_optional_fields:
+                      - address.state
+                      - address.zipcode
+                      - contact.phone
+                      - contact.mobile
+                    next_prompt: "What's your street address?"
+                    conversation_turn: 2
+                    updated_at: "2024-01-29T08:01:00Z"
+                turn3Response:
+                  summary: After adding partial address
+                  value:
+                    session_id: "SESSION-001"
+                    status: "in_progress"
+                    completeness_percentage: 50
+                    profile:
+                      name: "John Doe"
+                      email: "john.doe@example.com"
+                      type: "individual"
+                      address:
+                        street: "123 Main St"
+                        city: "New York"
+                    missing_required_fields:
+                      - address.country
+                    missing_optional_fields:
+                      - address.state
+                      - address.zipcode
+                      - contact.phone
+                      - contact.mobile
+                    next_prompt: "Which country are you in? (US, CA, or UK)"
+                    conversation_turn: 3
+                    updated_at: "2024-01-29T08:02:00Z"
+                turn4Response:
+                  summary: After completing address
+                  value:
+                    session_id: "SESSION-001"
+                    status: "in_progress"
+                    completeness_percentage: 80
+                    profile:
+                      name: "John Doe"
+                      email: "john.doe@example.com"
+                      type: "individual"
+                      address:
+                        street: "123 Main St"
+                        city: "New York"
+                        state: "NY"
+                        zipcode: "10001"
+                        country: "US"
+                    missing_required_fields: []
+                    missing_optional_fields:
+                      - contact.phone
+                      - contact.mobile
+                    next_prompt: "Would you like to add contact information? (optional)"
+                    conversation_turn: 4
+                    updated_at: "2024-01-29T08:03:00Z"
+                turn5Response:
+                  summary: After adding contact (complete)
+                  value:
+                    session_id: "SESSION-001"
+                    status: "complete"
+                    completeness_percentage: 100
+                    profile:
+                      name: "John Doe"
+                      email: "john.doe@example.com"
+                      type: "individual"
+                      address:
+                        street: "123 Main St"
+                        city: "New York"
+                        state: "NY"
+                        zipcode: "10001"
+                        country: "US"
+                      contact:
+                        phone: "+1-555-0100"
+                        mobile: "+1-555-0101"
+                    missing_required_fields: []
+                    missing_optional_fields: []
+                    next_prompt: "Profile complete! Ready to submit?"
+                    conversation_turn: 5
+                    updated_at: "2024-01-29T08:04:00Z"
+
+  /conversation/profile/{session_id}/finalize:
+    post:
+      summary: Finalize and submit the complete profile
+      description: |
+        Validates completeness and submits the final profile.
+        Returns formatted profile summary.
+      operationId: finalizeProfileSession
+      tags:
+        - Conversational Flow
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Session identifier
+          example: "SESSION-001"
+      responses:
+        '200':
+          description: Profile finalized successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinalizedProfileResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Profile finalized and submitted successfully"
+                    profile_id: "PROF-001"
+                    customer_name: "John Doe"
+                    customer_email: "john.doe@example.com"
+                    customer_type: "individual"
+                    address_formatted: "123 Main St, New York, NY, 10001, US"
+                    contact_phone: "+1-555-0100"
+                    contact_mobile: "+1-555-0101"
+                    conversation_summary:
+                      total_turns: 5
+                      fields_collected: 11
+                      time_to_complete: "4 minutes"
+                    finalized_at: "2024-01-29T08:04:30Z"
+        '400':
+          description: Profile incomplete or validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /conversation/profile/{session_id}/status:
+    get:
+      summary: Get current session status
+      description: |
+        Retrieve current state of the conversational session.
+        Shows completeness and missing fields.
+      operationId: getSessionStatus
+      tags:
+        - Conversational Flow
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Session identifier
+          example: "SESSION-001"
+      responses:
+        '200':
+          description: Session status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+
+components:
+  schemas:
+    # Session Start Request
+    SessionStartRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Customer name to start the conversation
+          example: "John Doe"
+
+    # Profile Update Request
+    ProfileUpdateRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          description: Customer email address
+          example: "john.doe@example.com"
+        type:
+          type: string
+          enum:
+            - individual
+            - corporate
+          description: Customer type
+          example: "individual"
+        address:
+          $ref: '#/components/schemas/AddressUpdate'
+        contact:
+          $ref: '#/components/schemas/ContactUpdate'
+
+    # Address Update (Partial)
+    AddressUpdate:
+      type: object
+      properties:
+        street:
+          type: string
+          description: Street address
+          example: "123 Main St"
+        city:
+          type: string
+          description: City name
+          example: "New York"
+        state:
+          type: string
+          description: State or province code
+          example: "NY"
+        zipcode:
+          type: string
+          description: Postal code
+          example: "10001"
+        country:
+          type: string
+          enum:
+            - US
+            - CA
+            - UK
+          description: Country code
+          example: "US"
+
+    # Contact Update (Partial)
+    ContactUpdate:
+      type: object
+      properties:
+        phone:
+          type: string
+          description: Primary phone number
+          example: "+1-555-0100"
+        mobile:
+          type: string
+          description: Mobile phone number
+          example: "+1-555-0101"
+
+    # Session Response
+    SessionResponse:
+      type: object
+      properties:
+        session_id:
+          type: string
+          description: Unique session identifier
+          example: "SESSION-001"
+        status:
+          type: string
+          enum:
+            - in_progress
+            - complete
+          description: Current session status
+          example: "in_progress"
+        completeness_percentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Percentage of required fields completed
+          example: 50
+        profile:
+          $ref: '#/components/schemas/ProfileState'
+        missing_required_fields:
+          type: array
+          items:
+            type: string
+          description: List of required fields still missing
+          example: ["address.country"]
+        missing_optional_fields:
+          type: array
+          items:
+            type: string
+          description: List of optional fields not yet provided
+          example: ["contact.phone", "contact.mobile"]
+        next_prompt:
+          type: string
+          description: Suggested next question for the user
+          example: "Which country are you in? (US, CA, or UK)"
+        conversation_turn:
+          type: integer
+          description: Current turn number in the conversation
+          example: 3
+        created_at:
+          type: string
+          format: date-time
+          description: Session creation timestamp
+          example: "2024-01-29T08:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2024-01-29T08:02:00Z"
+
+    # Profile State (Current)
+    ProfileState:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          example: "john.doe@example.com"
+        type:
+          type: string
+          example: "individual"
+        address:
+          type: object
+          properties:
+            street:
+              type: string
+              example: "123 Main St"
+            city:
+              type: string
+              example: "New York"
+            state:
+              type: string
+              example: "NY"
+            zipcode:
+              type: string
+              example: "10001"
+            country:
+              type: string
+              example: "US"
+        contact:
+          type: object
+          properties:
+            phone:
+              type: string
+              example: "+1-555-0100"
+            mobile:
+              type: string
+              example: "+1-555-0101"
+
+    # Finalized Profile Response
+    FinalizedProfileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Profile finalized and submitted successfully"
+        profile_id:
+          type: string
+          description: Generated profile ID
+          example: "PROF-001"
+        customer_name:
+          type: string
+          example: "John Doe"
+        customer_email:
+          type: string
+          example: "john.doe@example.com"
+        customer_type:
+          type: string
+          example: "individual"
+        address_formatted:
+          type: string
+          description: Formatted complete address
+          example: "123 Main St, New York, NY, 10001, US"
+        contact_phone:
+          type: string
+          example: "+1-555-0100"
+        contact_mobile:
+          type: string
+          example: "+1-555-0101"
+        conversation_summary:
+          type: object
+          properties:
+            total_turns:
+              type: integer
+              description: Total conversation turns
+              example: 5
+            fields_collected:
+              type: integer
+              description: Total fields collected
+              example: 11
+            time_to_complete:
+              type: string
+              description: Time taken to complete
+              example: "4 minutes"
+        finalized_at:
+          type: string
+          format: date-time
+          example: "2024-01-29T08:04:30Z"
+
+    # Error Response
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "VALIDATION_ERROR"
+        message:
+          type: string
+          example: "Profile incomplete - missing required fields"
+        missing_fields:
+          type: array
+          items:
+            type: string
+          description: List of missing required fields
+          example: ["address.country"]
+        session_id:
+          type: string
+          example: "SESSION-001"
+
+tags:
+  - name: Conversational Flow
+    description: Multi-turn conversational profile building operations
+
+# Made with Bob
