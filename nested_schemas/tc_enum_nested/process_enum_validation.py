@@ -3,8 +3,8 @@
 REAL-TIME TOOL:
 ===============
 This tool validates enum values at multiple nesting levels including account status,
-customer types, address countries, and contact preferences. It provides comprehensive
-validation reporting for nested enum structures.
+customer types, address countries, and contact preferences. It provides clean,
+user-friendly validation responses.
 
 PURPOSE:
 --------
@@ -12,12 +12,12 @@ PURPOSE:
 - Validate nested enums in customer objects (type)
 - Validate deeply nested enums in addresses (country)
 - Validate contact preference enums
-- Provide detailed validation reports
+- Provide clean, realistic responses
 
 USAGE:
 ------
 Input: Data with enum fields at various nesting levels
-Output: Validation results with detailed enum checking
+Output: Clean validation results with realistic data
 """
 
 from typing import Dict, Any, List, Tuple
@@ -50,7 +50,7 @@ def update_account_status(data: dict) -> dict:
         data (dict): Account data with status, type, and account_id
 
     Returns:
-        dict: Validation result with success status and details
+        dict: Clean validation result
     """
     result = {
         "success": True,
@@ -88,8 +88,8 @@ def update_account_status(data: dict) -> dict:
             result["provided_value"] = data.get("type")
             result["allowed_values"] = ["personal", "business"]
     else:
-        result["message"] = "Account status updated successfully"
-        result["validation_summary"] = f"All enum validations passed: {status_msg}, {type_msg}"
+        result["message"] = f"Account {data.get('account_id')} updated successfully to {data.get('status')} status"
+        result["account_type"] = data.get("type")
 
     return result
 
@@ -103,7 +103,7 @@ def create_customer_profile(data: dict) -> dict:
         data (dict): Customer profile data with nested customer object
 
     Returns:
-        dict: Validation result with formatted customer information
+        dict: Clean profile creation result
     """
     customer = data.get("customer", {})
     address = customer.get("address", {})
@@ -154,13 +154,11 @@ def create_customer_profile(data: dict) -> dict:
             address.get("zipcode", ""),
             address.get("country", "")
         ]
-        result["address_formatted"] = ", ".join(
-            [p for p in address_parts if p])
+        result["address"] = ", ".join([p for p in address_parts if p])
         result["country"] = address.get("country")
-        result["contact_phone"] = contact.get("phone", "Not provided")
-        result["contact_mobile"] = contact.get("mobile", "Not provided")
-        result["message"] = "Customer profile created successfully"
-        result["validation_summary"] = f"All enum validations passed: {type_msg}, {country_msg}"
+        result["phone"] = contact.get("phone", "Not provided")
+        result["mobile"] = contact.get("mobile", "Not provided")
+        result["message"] = f"Customer profile created successfully for {customer.get('name')}"
 
     return result
 
@@ -178,7 +176,7 @@ def create_multi_level_enum_profile(data: dict) -> dict:
         data (dict): Profile data with nested structures
 
     Returns:
-        dict: Comprehensive validation report with all enum checks
+        dict: Clean profile creation result
     """
     customer = data.get("customer", {})
     address = customer.get("address", {})
@@ -187,7 +185,7 @@ def create_multi_level_enum_profile(data: dict) -> dict:
     result = {
         "success": True,
         "profile_id": data.get("profile_id", "Unknown"),
-        "profile_status": data.get("status"),
+        "status": data.get("status"),
         "customer_name": customer.get("name", "Unknown"),
         "customer_email": customer.get("email", "Not provided"),
         "customer_type": customer.get("type"),
@@ -204,10 +202,10 @@ def create_multi_level_enum_profile(data: dict) -> dict:
         ["active", "inactive"],
         "status"
     )
-    validations.append(("level_0_status", status_msg, status_valid,
-                       0, "status", data.get("status"), ["active", "inactive"]))
     if not status_valid:
         all_valid = False
+        validations.append(
+            ("status", data.get("status"), ["active", "inactive"]))
 
     # Level 1: customer.type
     type_valid, type_msg = validate_enum(
@@ -215,10 +213,10 @@ def create_multi_level_enum_profile(data: dict) -> dict:
         ["individual", "corporate"],
         "customer_type"
     )
-    validations.append(("level_1_customer_type", type_msg, type_valid, 1,
-                       "customer.type", customer.get("type"), ["individual", "corporate"]))
     if not type_valid:
         all_valid = False
+        validations.append(("customer.type", customer.get(
+            "type"), ["individual", "corporate"]))
 
     # Level 2: address.country
     country_valid, country_msg = validate_enum(
@@ -226,10 +224,10 @@ def create_multi_level_enum_profile(data: dict) -> dict:
         ["US", "CA", "UK"],
         "address_country"
     )
-    validations.append(("level_2_address_country", country_msg, country_valid,
-                       2, "customer.address.country", address.get("country"), ["US", "CA", "UK"]))
     if not country_valid:
         all_valid = False
+        validations.append(("customer.address.country",
+                           address.get("country"), ["US", "CA", "UK"]))
 
     # Level 3: contact.preference (if provided)
     preference = contact.get("preference")
@@ -239,25 +237,23 @@ def create_multi_level_enum_profile(data: dict) -> dict:
             ["email", "phone", "sms"],
             "contact_preference"
         )
-        validations.append(("level_3_contact_preference", pref_msg, pref_valid, 3,
-                           "customer.contact.preference", preference, ["email", "phone", "sms"]))
         if not pref_valid:
             all_valid = False
+            validations.append(
+                ("customer.contact.preference", preference, ["email", "phone", "sms"]))
 
     if not all_valid:
         result["success"] = False
-        result["error"] = "ENUM_VALIDATION_ERROR"
-        result["message"] = "One or more enum validation failures detected"
+        result["error"] = "VALIDATION_ERROR"
+        result["message"] = "One or more validation failures detected"
         result["validation_failures"] = []
 
-        for level_name, msg, is_valid, level, field_path, value, allowed in validations:
-            if not is_valid:
-                result["validation_failures"].append({
-                    "field_path": field_path,
-                    "provided_value": value,
-                    "allowed_values": allowed,
-                    "nesting_level": level
-                })
+        for field_path, value, allowed in validations:
+            result["validation_failures"].append({
+                "field": field_path,
+                "provided_value": value,
+                "allowed_values": allowed
+            })
     else:
         # Format address
         address_parts = [
@@ -267,23 +263,13 @@ def create_multi_level_enum_profile(data: dict) -> dict:
             address.get("zipcode", ""),
             address.get("country", "")
         ]
-        result["address_formatted"] = ", ".join(
-            [p for p in address_parts if p])
+        result["address"] = ", ".join([p for p in address_parts if p])
         result["country"] = address.get("country")
-        result["contact_phone"] = contact.get("phone", "Not provided")
+        result["phone"] = contact.get("phone", "Not provided")
         result["contact_preference"] = contact.get(
             "preference", "Not specified")
-        result["contact_timezone"] = contact.get("timezone", "Not specified")
-        result["message"] = "Profile created with all enum validations passed"
-
-        # Build enum validation report
-        result["enum_validation_report"] = {
-            "total_enum_fields": len(validations),
-            "all_valid": True
-        }
-
-        for level_name, msg, is_valid, level, field_path, value, allowed in validations:
-            result["enum_validation_report"][level_name] = msg
+        result["timezone"] = contact.get("timezone", "Not specified")
+        result["message"] = f"Profile {data.get('profile_id')} created successfully for {customer.get('name')}"
 
     return result
 
@@ -308,8 +294,7 @@ if __name__ == '__main__':
     print(f"\nResult: {result1['message']}")
     print(f"Account ID: {result1['account_id']}")
     print(f"Status: {result1['status']}")
-    print(f"Type: {result1['type']}")
-    print(f"Validation: {result1.get('validation_summary', 'N/A')}")
+    print(f"Type: {result1.get('account_type', result1['type'])}")
 
     # Test 2: Nested enum validation
     print("\n" + "="*70)
@@ -340,8 +325,7 @@ if __name__ == '__main__':
     print(f"\nResult: {result2['message']}")
     print(f"Customer: {result2['customer_name']} ({result2['customer_type']})")
     print(f"Email: {result2['customer_email']}")
-    print(f"Address: {result2.get('address_formatted', 'N/A')}")
-    print(f"Validation: {result2.get('validation_summary', 'N/A')}")
+    print(f"Address: {result2.get('address', 'N/A')}")
 
     # Test 3: Multi-level enum validation
     print("\n" + "="*70)
@@ -373,19 +357,10 @@ if __name__ == '__main__':
     result3 = create_multi_level_enum_profile(profile_data)
     print(f"\nResult: {result3['message']}")
     print(f"Profile ID: {result3['profile_id']}")
-    print(f"Status: {result3['profile_status']}")
+    print(f"Status: {result3['status']}")
     print(f"Customer: {result3['customer_name']} ({result3['customer_type']})")
-    print(f"Address: {result3.get('address_formatted', 'N/A')}")
+    print(f"Address: {result3.get('address', 'N/A')}")
     print(f"Contact Preference: {result3.get('contact_preference', 'N/A')}")
-
-    if 'enum_validation_report' in result3:
-        print(f"\nEnum Validation Report:")
-        report = result3['enum_validation_report']
-        print(f"  Total Enum Fields: {report['total_enum_fields']}")
-        print(f"  All Valid: {report['all_valid']}")
-        for key, value in report.items():
-            if key.startswith('level_'):
-                print(f"  {key}: {value}")
 
     # Test 4: Invalid enum value
     print("\n" + "="*70)
