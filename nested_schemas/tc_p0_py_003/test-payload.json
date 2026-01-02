@@ -1,0 +1,109 @@
+{
+    "basicEmployee": {
+        "description": "Register employee with direct manager",
+        "payload": {
+            "employee": {
+                "name": "Sarah Martinez",
+                "employee_id": "EMP-201",
+                "email": "sarah.martinez@company.com",
+                "phone": "+1-555-0201",
+                "department": "Engineering",
+                "position": "Software Engineer",
+                "start_date": "2024-02-01",
+                "manager": {
+                    "name": "Michael Chen",
+                    "employee_id": "EMP-150",
+                    "email": "michael.chen@company.com",
+                    "phone": "+1-555-0150",
+                    "department": "Engineering",
+                    "position": "Engineering Manager",
+                    "start_date": "2022-05-15"
+                }
+            }
+        }
+    },
+    "multiLevelHierarchy": {
+        "description": "Register senior employee with multi-level management chain",
+        "payload": {
+            "employee": {
+                "name": "James Wilson",
+                "employee_id": "EMP-202",
+                "email": "james.wilson@company.com",
+                "phone": "+1-555-0202",
+                "department": "Product",
+                "position": "Senior Product Manager",
+                "start_date": "2024-03-01",
+                "manager": {
+                    "name": "Lisa Anderson",
+                    "employee_id": "EMP-100",
+                    "email": "lisa.anderson@company.com",
+                    "phone": "+1-555-0100",
+                    "department": "Product",
+                    "position": "VP of Product",
+                    "start_date": "2020-01-10",
+                    "manager": {
+                        "name": "Robert Taylor",
+                        "employee_id": "EMP-001",
+                        "email": "robert.taylor@company.com",
+                        "phone": "+1-555-0001",
+                        "department": "Executive",
+                        "position": "Chief Product Officer",
+                        "start_date": "2018-06-01"
+                    }
+                }
+            }
+        }
+    },
+    "topLevelExecutive": {
+        "description": "Register top-level executive without manager",
+        "payload": {
+            "employee": {
+                "name": "Jennifer Lee",
+                "employee_id": "EMP-001",
+                "email": "jennifer.lee@company.com",
+                "phone": "+1-555-0001",
+                "department": "Executive",
+                "position": "Chief Executive Officer",
+                "start_date": "2015-01-01"
+            }
+        }
+    },
+    "deepHierarchy": {
+        "description": "Register employee with 4-level management hierarchy",
+        "payload": {
+            "employee": {
+                "name": "Alex Johnson",
+                "employee_id": "EMP-301",
+                "email": "alex.johnson@company.com",
+                "phone": "+1-555-0301",
+                "department": "Engineering",
+                "position": "Junior Developer",
+                "start_date": "2024-04-01",
+                "manager": {
+                    "name": "Sarah Martinez",
+                    "employee_id": "EMP-201",
+                    "email": "sarah.martinez@company.com",
+                    "phone": "+1-555-0201",
+                    "department": "Engineering",
+                    "position": "Software Engineer",
+                    "manager": {
+                        "name": "Michael Chen",
+                        "employee_id": "EMP-150",
+                        "email": "michael.chen@company.com",
+                        "phone": "+1-555-0150",
+                        "department": "Engineering",
+                        "position": "Engineering Manager",
+                        "manager": {
+                            "name": "David Kim",
+                            "employee_id": "EMP-050",
+                            "email": "david.kim@company.com",
+                            "phone": "+1-555-0050",
+                            "department": "Engineering",
+                            "position": "VP of Engineering"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

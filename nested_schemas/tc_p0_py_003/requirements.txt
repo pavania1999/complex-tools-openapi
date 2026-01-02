@@ -1,5 +1,8 @@
-# Requirements for TC-P0-PY-003 Python Tool
-# Epic #45755 - Nested Schema Support - Complex Scenarios
+# Requirements for Employee Registration API
+# Circular Person Schema Reference Implementation
 
-# No additional requirements needed beyond the base watsonx orchestrate SDK
-# The tool uses only standard Python libraries (typing, set operations)
+Flask==3.0.0
+flask-cors==4.0.0
+PyYAML==6.0.1
+Werkzeug==3.0.1
+gunicorn==21.2.0

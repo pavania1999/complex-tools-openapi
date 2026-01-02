@@ -1,0 +1,302 @@
+openapi: 3.0.0
+info:
+  title: Employee Registration API
+  description: |
+    Add employee information including their manager details, where both employee
+    and manager share the same Person schema structure. This creates a circular
+    schema reference: Person has a manager field that also references Person schema.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: https://complex-tools-openapi.onrender.com/api/v1
+    description: Production server
+
+paths:
+  /employees/register:
+    post:
+      summary: Register new employee with manager information
+      description: |
+        Register a new employee by providing their personal information along with
+        their manager's information. Both employee and manager use the same Person
+        schema, creating a circular schema reference pattern where Person.manager
+        references Person schema.
+      operationId: registerEmployee
+      tags:
+        - Employee Registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeRegistrationRequest'
+            examples:
+              newEmployee:
+                summary: Register new employee with manager
+                value:
+                  employee:
+                    name: Sarah Martinez
+                    employee_id: EMP-201
+                    email: sarah.martinez@company.com
+                    phone: "+1-555-0201"
+                    department: Engineering
+                    position: Software Engineer
+                    start_date: "2024-02-01"
+                    manager:
+                      name: Michael Chen
+                      employee_id: EMP-150
+                      email: michael.chen@company.com
+                      phone: "+1-555-0150"
+                      department: Engineering
+                      position: Engineering Manager
+                      start_date: "2022-05-15"
+              seniorEmployee:
+                summary: Register senior employee with executive manager
+                value:
+                  employee:
+                    name: James Wilson
+                    employee_id: EMP-202
+                    email: james.wilson@company.com
+                    phone: "+1-555-0202"
+                    department: Product
+                    position: Senior Product Manager
+                    start_date: "2024-03-01"
+                    manager:
+                      name: Lisa Anderson
+                      employee_id: EMP-100
+                      email: lisa.anderson@company.com
+                      phone: "+1-555-0100"
+                      department: Product
+                      position: VP of Product
+                      start_date: "2020-01-10"
+                      manager:
+                        name: Robert Taylor
+                        employee_id: EMP-001
+                        email: robert.taylor@company.com
+                        phone: "+1-555-0001"
+                        department: Executive
+                        position: Chief Product Officer
+                        start_date: "2018-06-01"
+      responses:
+        '200':
+          description: Employee registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeRegistrationResponse'
+              examples:
+                registrationSuccess:
+                  summary: Successful employee registration
+                  value:
+                    status: success
+                    message: Employee registered successfully
+                    employee:
+                      name: Sarah Martinez
+                      employee_id: EMP-201
+                      department: Engineering
+                      position: Software Engineer
+                      start_date: "2024-02-01"
+                    manager:
+                      name: Michael Chen
+                      employee_id: EMP-150
+                      position: Engineering Manager
+                    reporting_chain: "Sarah Martinez (EMP-201) → Michael Chen (EMP-150)"
+                    registration_date: "2024-02-01T10:30:00Z"
+                seniorRegistrationSuccess:
+                  summary: Senior employee with multi-level hierarchy
+                  value:
+                    status: success
+                    message: Employee registered successfully
+                    employee:
+                      name: James Wilson
+                      employee_id: EMP-202
+                      department: Product
+                      position: Senior Product Manager
+                      start_date: "2024-03-01"
+                    manager:
+                      name: Lisa Anderson
+                      employee_id: EMP-100
+                      position: VP of Product
+                    reporting_chain: "James Wilson (EMP-202) → Lisa Anderson (EMP-100) → Robert Taylor (EMP-001)"
+                    hierarchy_levels: 3
+                    registration_date: "2024-03-01T14:15:00Z"
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingFields:
+                  summary: Missing required fields
+                  value:
+                    status: error
+                    error: Validation failed
+                    code: INVALID_REQUEST
+                    details: "Required fields missing: employee.name, employee.employee_id"
+        '409':
+          description: Employee already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                duplicateEmployee:
+                  summary: Employee ID already exists
+                  value:
+                    status: error
+                    error: Employee already exists
+                    code: DUPLICATE_EMPLOYEE
+                    details: "Employee with ID EMP-201 already exists in the system"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    # Main Request Schema
+    EmployeeRegistrationRequest:
+      type: object
+      required:
+        - employee
+      properties:
+        employee:
+          $ref: '#/components/schemas/Person'
+          description: Employee information to register
+
+    # Person Schema - Circular reference where manager also uses Person schema
+    Person:
+      type: object
+      description: |
+        Person schema representing an employee or manager. The manager field
+        references the same Person schema, creating a circular schema reference.
+        This allows representing organizational hierarchies of any depth.
+      required:
+        - name
+        - employee_id
+        - email
+        - department
+        - position
+      properties:
+        name:
+          type: string
+          description: Full name of the person
+          example: Sarah Martinez
+        employee_id:
+          type: string
+          description: Unique employee identifier
+          pattern: '^EMP-[0-9]+$'
+          example: EMP-201
+        email:
+          type: string
+          format: email
+          description: Work email address
+          example: sarah.martinez@company.com
+        phone:
+          type: string
+          description: Work phone number
+          example: "+1-555-0201"
+        department:
+          type: string
+          description: Department name
+          enum:
+            - Engineering
+            - Product
+            - Sales
+            - Marketing
+            - HR
+            - Finance
+            - Operations
+            - Executive
+          example: Engineering
+        position:
+          type: string
+          description: Job title/position
+          example: Software Engineer
+        start_date:
+          type: string
+          format: date
+          description: Employment start date
+          example: "2024-02-01"
+        manager:
+          $ref: '#/components/schemas/Person'
+          description: |
+            Manager of this person. Uses the same Person schema, creating
+            a circular reference that allows representing the full management
+            hierarchy. This field is optional for top-level executives.
+
+    # Response Schema
+    EmployeeRegistrationResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success, error]
+          description: Registration status
+        message:
+          type: string
+          description: Status message
+        employee:
+          type: object
+          description: Registered employee summary
+          properties:
+            name:
+              type: string
+            employee_id:
+              type: string
+            department:
+              type: string
+            position:
+              type: string
+            start_date:
+              type: string
+              format: date
+        manager:
+          type: object
+          description: Manager summary
+          properties:
+            name:
+              type: string
+            employee_id:
+              type: string
+            position:
+              type: string
+        reporting_chain:
+          type: string
+          description: Visual representation of reporting hierarchy
+        hierarchy_levels:
+          type: integer
+          description: Number of levels in the reporting hierarchy
+        registration_date:
+          type: string
+          format: date-time
+          description: Timestamp of registration
+
+    # Error Response Schema
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [error]
+          description: Error status
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        details:
+          type: string
+          description: Detailed error information
+
+tags:
+  - name: Employee Registration
+    description: Register employees with their manager information
+
+# Made with Bob

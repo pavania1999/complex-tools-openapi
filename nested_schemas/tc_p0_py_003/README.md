@@ -1,204 +1,213 @@
-# TC-P0-PY-003: Python Tool with Complex Schemas and Circular References
+# Employee Registration API - Circular Person Schema Reference
 
 ## Overview
 
-This Python tool implements **TC-P0-PY-003** from Epic #45755 (Nested Schema Support). It validates that Python tools can handle complex scenarios including:
-1. Complex real-world data structures with 30+ fields
-2. Circular reference detection and handling
+This API demonstrates a realistic use case of **circular schema references** in OpenAPI specifications. The `Person` schema is used for both employees and their managers, creating a natural circular reference pattern that models organizational hierarchies.
 
-## Test Configuration
+## Circular Schema Pattern
 
-- **Test ID**: TC-P0-PY-003
-- **Test Name**: Python + React-Intrinsic + gpt-oss-120b + Complex Scenarios
-- **Priority**: P0 (Critical)
-- **Type**: Integration Test
-- **Automation Status**: Automated
-- **Epic**: #45755 - Nested Schema Support
+### Schema Structure
 
-## Tool Details
-
-### Function: `process_complex_data`
-
-Processes complex data structures to validate two scenarios:
-
-1. **Complex Real-World (30+ fields)**: Employee data with comprehensive nested structures
-2. **Circular References**: Self-referential data structures (person -> friendOf -> person)
-
-### Scenario 1: Complex Real-World (30+ Fields)
-
-Employee data structure with:
-- Personal information (name, email, phone, address)
-- Employment details (department, position, salary, benefits)
-- Projects array with multiple projects
-- Skills array
-- Certifications array with details
-- Performance metrics (rating, reviews, goals)
-- Preferences
-
-**Total Fields**: 30+ across all nested levels
-
-### Scenario 2: Circular References
-
-Person data structure with:
-- Basic info (id, name, email, age)
-- friendOf reference that can point back to original person
-- Circular detection without infinite loops
-
-## Usage
-
-### Importing to watsonx Orchestrate
-
-1. **Import the Python Tool**:
-   - Navigate to Tools section
-   - Import from: `agentic_data/tools/nested_schemas/tc_p0_py_003/process_complex_data.py`
-   - Tool will be registered as `process_complex_data`
-
-2. **Import the Agent**:
-   - Navigate to Agents section
-   - Import from: `agentic_data/agents/nested_schemas/tc_p0_py_003_agent.yaml`
-   - Agent configured with react-intrinsic style and gpt-oss-120b model
-
-### Testing Scenarios
-
-#### Scenario 1: Complex Real-World Data
-```
-User: "Process employee John Doe with full details including personal info, 
-       employment at Engineering department as Senior Software Engineer, 
-       projects Alpha and Beta, skills in Python and AWS, 
-       AWS certification, and 4.5 performance rating"
-       
-Expected: Tool processes 30+ fields successfully
+```yaml
+Person:
+  properties:
+    name: string
+    employee_id: string
+    email: string
+    phone: string
+    department: string
+    position: string
+    start_date: date
+    manager:
+      $ref: '#/components/schemas/Person'  # Circular reference!
 ```
 
-#### Scenario 2: Circular References
-```
-User: "Process person Alice who is friends with Bob, and Bob is friends with Alice"
+### Why This Works
 
-Expected: Tool detects circular reference and handles it without infinite loop
-```
+- **Schema Level**: `Person` schema references itself through the `manager` field, creating a circular schema definition
+- **Data Level**: Actual data forms linear hierarchies (no one reports to themselves in reality)
+- **Business Value**: Models organizational structures naturally without schema duplication
 
-## Validation Criteria
+## API Endpoint
 
-### Complex Real-World Success Criteria
-- ✅ `complex_real_world_validated`: True
-- ✅ `has_30_plus_fields`: True
-- ✅ `field_count`: >= 30
-- ✅ All sections present: personal, employment, projects, skills, certifications, performance
+### Register Employee
 
-### Circular Reference Success Criteria
-- ✅ `circular_reference_scenario`: True
-- ✅ `circular_refs_handled`: True
-- ✅ `circular_refs_found`: > 0
-- ✅ No infinite loops or stack overflow
+**Endpoint**: `POST /api/v1/employees/register`
 
-## Expected Results
-
-### Complex Real-World
+**Request Body**:
 ```json
 {
-    "status": "success",
-    "test_id": "TC-P0-PY-003",
-    "field_count": 35,
-    "validation": {
-        "complex_real_world": true,
-        "has_30_plus_fields": true,
-        "personal_info_present": true,
-        "employment_info_present": true,
-        "projects_present": true,
-        "skills_present": true,
-        "certifications_present": true,
-        "performance_present": true
-    },
-    "summary": {
-        "complex_real_world_validated": true,
-        "total_fields_processed": 35
+  "employee": {
+    "name": "Sarah Martinez",
+    "employee_id": "EMP-201",
+    "email": "sarah.martinez@company.com",
+    "phone": "+1-555-0201",
+    "department": "Engineering",
+    "position": "Software Engineer",
+    "start_date": "2024-02-01",
+    "manager": {
+      "name": "Michael Chen",
+      "employee_id": "EMP-150",
+      "email": "michael.chen@company.com",
+      "phone": "+1-555-0150",
+      "department": "Engineering",
+      "position": "Engineering Manager"
     }
+  }
 }
 ```
 
-### Circular References
+**Response**:
 ```json
 {
-    "status": "success",
-    "test_id": "TC-P0-PY-003",
-    "circular_refs_detected": ["person -> friendOf -> friendOf -> [CIRCULAR]"],
-    "validation": {
-        "circular_reference_scenario": true,
-        "person_present": true,
-        "friend_of_present": true,
-        "circular_ref_detected": true,
-        "circular_refs_handled": true
-    },
-    "summary": {
-        "circular_refs_validated": true,
-        "circular_refs_found": 1
-    }
+  "status": "success",
+  "message": "Employee registered successfully",
+  "employee": {
+    "name": "Sarah Martinez",
+    "employee_id": "EMP-201",
+    "department": "Engineering",
+    "position": "Software Engineer",
+    "start_date": "2024-02-01"
+  },
+  "manager": {
+    "name": "Michael Chen",
+    "employee_id": "EMP-150",
+    "position": "Engineering Manager"
+  },
+  "reporting_chain": "Sarah Martinez (EMP-201) → Michael Chen (EMP-150)",
+  "registration_date": "2024-02-01T10:30:00Z"
 }
 ```
+
+## Local Development
+
+### Prerequisites
+
+- Python 3.11+
+- pip
+
+### Setup
+
+1. Install dependencies:
+```bash
+cd nested_schemas/tc_p0_py_003
+pip install -r requirements.txt
+```
+
+2. Run the server:
+```bash
+python api_server.py
+```
+
+The server will start on `http://localhost:5000`
+
+### Test the API
+
+```bash
+# Health check
+curl http://localhost:5000/api/v1/health
+
+# Register employee
+curl -X POST http://localhost:5000/api/v1/employees/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "employee": {
+      "name": "Sarah Martinez",
+      "employee_id": "EMP-201",
+      "email": "sarah.martinez@company.com",
+      "phone": "+1-555-0201",
+      "department": "Engineering",
+      "position": "Software Engineer",
+      "start_date": "2024-02-01",
+      "manager": {
+        "name": "Michael Chen",
+        "employee_id": "EMP-150",
+        "email": "michael.chen@company.com",
+        "department": "Engineering",
+        "position": "Engineering Manager"
+      }
+    }
+  }'
+
+# Get OpenAPI spec
+curl http://localhost:5000/api/v1/openapi
+```
+
+### Run Python Tool Directly
+
+```bash
+python register_employee.py
+```
+
+This will run three demo scenarios:
+1. Basic employee with manager
+2. Senior employee with multi-level hierarchy
+3. Top-level executive without manager
+
+## Deployment to Render
+
+### Option 1: Using Render Dashboard
+
+1. Go to [Render Dashboard](https://dashboard.render.com/)
+2. Click "New +" → "Web Service"
+3. Connect your GitHub repository
+4. Configure:
+   - **Name**: `employee-registration-api`
+   - **Environment**: `Python 3`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `gunicorn api_server:app`
+   - **Root Directory**: `nested_schemas/tc_p0_py_003`
+5. Click "Create Web Service"
+
+### Option 2: Using render.yaml
+
+1. Ensure `render.yaml` is in the repository root or service directory
+2. Push to GitHub
+3. Render will auto-detect and deploy
+
+### Environment Variables
+
+- `PORT`: Set automatically by Render (default: 10000)
+- `PYTHON_VERSION`: 3.11.0
+
+## Test Payloads
+
+See [`test-payload.json`](test-payload.json) for various test scenarios:
+
+1. **basicEmployee**: Employee with direct manager
+2. **multiLevelHierarchy**: 3-level management chain
+3. **topLevelExecutive**: Executive without manager
+4. **deepHierarchy**: 4-level management chain
 
 ## Files
 
-```
-agentic_data/
-├── tools/nested_schemas/tc_p0_py_003/
-│   ├── process_complex_data.py      # Python tool (338 lines)
-│   ├── requirements.txt              # Dependencies (none)
-│   └── README.md                     # This file
-└── agents/nested_schemas/
-    └── tc_p0_py_003_agent.yaml      # Agent configuration
-```
-
-## Local Testing
-
-Run the tool locally:
-
-```bash
-cd agentic_data/tools/nested_schemas/tc_p0_py_003
-python process_complex_data.py
-```
-
-Expected output:
-```
-Test 1: Complex Real-World (30+ fields)
-Complex real-world validated: True
-Total fields: 35
-Has 30+ fields: True
-
-Test 2: Circular References
-Circular refs validated: True
-Circular refs found: 1
-Circular paths: ['person -> friendOf -> friendOf -> [CIRCULAR]']
-```
+- `openapi_add_employee_with_manager.yaml` - OpenAPI 3.0 specification
+- `register_employee.py` - Core registration logic
+- `api_server.py` - Flask API server
+- `requirements.txt` - Python dependencies
+- `render.yaml` - Render deployment configuration
+- `test-payload.json` - Test payloads
+- `README.md` - This file
 
 ## Key Features
 
-- ✅ Handles 30+ fields in complex nested structures
-- ✅ Detects circular references without infinite loops
-- ✅ Counts total fields dynamically
-- ✅ Validates comprehensive employee data structure
-- ✅ Processes person relationships with circular detection
-- ✅ Returns detailed validation results
-- ✅ Google-style docstring for proper schema parsing
+✅ **Circular Schema Reference**: Person schema references itself  
+✅ **Realistic Business Logic**: Models organizational hierarchies  
+✅ **Multi-Level Support**: Handles arbitrary hierarchy depths  
+✅ **Validation**: Checks required fields and data integrity  
+✅ **Reporting Chain**: Builds visual representation of hierarchy  
+✅ **Production Ready**: Includes error handling and logging  
 
-## Related Test Cases
+## API Documentation
 
-- TC-P0-PY-001: Standard Nesting (Basic/Deep/References)
-- TC-P0-PY-002: Array Handling
-- TC-P0-PY-004: Enums in Nested Schemas
-- TC-P0-PY-005: Multi-Field Slot Filling
-
-## Notes
-
-- Tool uses only standard Python libraries (no external dependencies)
-- Circular reference detection uses object ID tracking
-- Field counting handles nested dictionaries and arrays
-- Gracefully handles missing or incomplete data
-- Prevents infinite loops in circular structures
+Full OpenAPI specification available at:
+- Local: `http://localhost:5000/api/v1/openapi`
+- Production: `https://your-service.onrender.com/api/v1/openapi`
 
 ## Support
 
-For issues or questions:
-1. Review validation results in tool output
-2. Check field_count and circular_refs_detected
-3. Verify input data structure matches expected format
-4. Ensure agent is configured with react-intrinsic style
+For issues or questions, please refer to the main project documentation.
+
+---
+
+**Made with Bob** - Demonstrating circular schema references in real-world scenarios
