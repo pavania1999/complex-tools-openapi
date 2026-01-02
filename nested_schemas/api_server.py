@@ -5,6 +5,7 @@ Flask API Server for Nested Schema Testing
 This server exposes the Python tools as REST APIs for testing with watsonx Orchestrate.
 It implements:
 - TC-P0-PY-001 (Customer Order Processing)
+- TC-P0-API-002 (Array Handling - Wrapped & Raw)
 - TC-P0-PY-003 (Employee Management)
 - Enum Nested Schemas (Group 4)
 - Conversational Slot Filling (Group 5)
@@ -16,6 +17,10 @@ The server will start on http://localhost:5000
 
 Endpoints:
     POST /api/v1/orders/process - Process customer orders
+    POST /api/v1/inventory/process-items - Process inventory items (wrapped array)
+    POST /api/v1/inventory/process-items-raw - Process inventory items (raw array)
+    POST /api/v1/orders/process-batch - Process batch orders (wrapped array)
+    POST /api/v1/orders/process-batch-raw - Process batch orders (raw array)
     POST /api/v1/employees/process - Process employee data
     POST /api/v1/account/status - Update account status (enum validation)
     POST /api/v1/customer/profile - Create customer profile (nested enums)
@@ -30,6 +35,10 @@ Endpoints:
 
 from tc_p0_py_003.process_complex_data import process_employee_data
 from tc_p0_py_001.process_customer_order import process_customer_order
+from tc_p0_api_002.process_array_handling import (
+    process_inventory_items,
+    process_batch_orders
+)
 from tc_enum_nested.process_enum_validation import (
     update_account_status,
     create_customer_profile,
@@ -49,6 +58,7 @@ import yaml
 
 # Add tool directories to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'tc_p0_py_001'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'tc_p0_api_002'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'tc_p0_py_003'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'tc_enum_nested'))
 sys.path.insert(0, os.path.join(os.path.dirname(
@@ -71,6 +81,10 @@ def health_check():
         'version': '1.0.0',
         'endpoints': {
             'orders': '/api/v1/orders/process',
+            'inventory_wrapped': '/api/v1/inventory/process-items',
+            'inventory_raw': '/api/v1/inventory/process-items-raw',
+            'batch_orders_wrapped': '/api/v1/orders/process-batch',
+            'batch_orders_raw': '/api/v1/orders/process-batch-raw',
             'employees': '/api/v1/employees/process',
             'account_status': '/api/v1/account/status',
             'customer_profile': '/api/v1/customer/profile',
@@ -80,6 +94,8 @@ def health_check():
             'conversation_finalize': '/api/v1/conversation/profile/<session_id>/finalize',
             'conversation_status': '/api/v1/conversation/profile/<session_id>/status',
             'openapi_orders': '/api/v1/openapi/orders',
+            'openapi_inventory_wrapped': '/api/v1/openapi/inventory-wrapped',
+            'openapi_inventory_raw': '/api/v1/openapi/inventory-raw',
             'openapi_employees': '/api/v1/openapi/employees',
             'openapi_enum': '/api/v1/openapi/enum',
             'openapi_conversational': '/api/v1/openapi/conversational'
@@ -123,6 +139,165 @@ def process_order():
             'error': 'Internal server error',
             'code': 'INTERNAL_ERROR',
             'details': str(e)
+        }), 500
+
+
+# Array Handling endpoints (TC-P0-API-002)
+@app.route('/api/v1/inventory/process-items', methods=['POST'])
+def api_process_inventory_items():
+    """Process inventory items with wrapped array structure"""
+    try:
+        request_data = request.get_json()
+
+        if not request_data:
+            return jsonify({
+                "error": "Invalid request",
+                "code": "INVALID_JSON",
+                "details": {"message": "Request body must be valid JSON"}
+            }), 400
+
+        if "items" not in request_data:
+            return jsonify({
+                "error": "Missing required field",
+                "code": "MISSING_ITEMS",
+                "details": {"message": "Request must contain 'items' array"}
+            }), 400
+
+        if not isinstance(request_data["items"], list):
+            return jsonify({
+                "error": "Invalid data type",
+                "code": "INVALID_ITEMS_TYPE",
+                "details": {"message": "'items' must be an array"}
+            }), 400
+
+        result = process_inventory_items(request_data)
+
+        if result["status"] == "failed":
+            return jsonify(result), 400
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        return jsonify({
+            "error": "Internal server error",
+            "code": "SERVER_ERROR",
+            "details": {"message": str(e)}
+        }), 500
+
+
+@app.route('/api/v1/inventory/process-items-raw', methods=['POST'])
+def api_process_inventory_items_raw():
+    """Process inventory items with raw array structure"""
+    try:
+        request_data = request.get_json()
+
+        if not request_data:
+            return jsonify({
+                "error": "Invalid request",
+                "code": "INVALID_JSON",
+                "details": {"message": "Request body must be valid JSON"}
+            }), 400
+
+        if not isinstance(request_data, list):
+            return jsonify({
+                "error": "Invalid data type",
+                "code": "INVALID_TYPE",
+                "details": {"message": "Request body must be an array"}
+            }), 400
+
+        # Wrap the raw array for processing
+        wrapped_data = {"items": request_data}
+        result = process_inventory_items(wrapped_data)
+
+        if result["status"] == "failed":
+            return jsonify(result), 400
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        return jsonify({
+            "error": "Internal server error",
+            "code": "SERVER_ERROR",
+            "details": {"message": str(e)}
+        }), 500
+
+
+@app.route('/api/v1/orders/process-batch', methods=['POST'])
+def api_process_batch_orders():
+    """Process batch orders with wrapped array structure"""
+    try:
+        request_data = request.get_json()
+
+        if not request_data:
+            return jsonify({
+                "error": "Invalid request",
+                "code": "INVALID_JSON",
+                "details": {"message": "Request body must be valid JSON"}
+            }), 400
+
+        if "orders" not in request_data:
+            return jsonify({
+                "error": "Missing required field",
+                "code": "MISSING_ORDERS",
+                "details": {"message": "Request must contain 'orders' array"}
+            }), 400
+
+        if not isinstance(request_data["orders"], list):
+            return jsonify({
+                "error": "Invalid data type",
+                "code": "INVALID_ORDERS_TYPE",
+                "details": {"message": "'orders' must be an array"}
+            }), 400
+
+        result = process_batch_orders(request_data)
+
+        if result["status"] == "failed":
+            return jsonify(result), 400
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        return jsonify({
+            "error": "Internal server error",
+            "code": "SERVER_ERROR",
+            "details": {"message": str(e)}
+        }), 500
+
+
+@app.route('/api/v1/orders/process-batch-raw', methods=['POST'])
+def api_process_batch_orders_raw():
+    """Process batch orders with raw array structure"""
+    try:
+        request_data = request.get_json()
+
+        if not request_data:
+            return jsonify({
+                "error": "Invalid request",
+                "code": "INVALID_JSON",
+                "details": {"message": "Request body must be valid JSON"}
+            }), 400
+
+        if not isinstance(request_data, list):
+            return jsonify({
+                "error": "Invalid data type",
+                "code": "INVALID_TYPE",
+                "details": {"message": "Request body must be an array"}
+            }), 400
+
+        # Wrap the raw array for processing
+        wrapped_data = {"orders": request_data}
+        result = process_batch_orders(wrapped_data)
+
+        if result["status"] == "failed":
+            return jsonify(result), 400
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        return jsonify({
+            "error": "Internal server error",
+            "code": "SERVER_ERROR",
+            "details": {"message": str(e)}
         }), 500
 
 
@@ -413,6 +588,66 @@ def get_conversational_openapi():
         }), 500
 
 
+@app.route('/api/v1/openapi/inventory-wrapped', methods=['GET'])
+def get_inventory_wrapped_openapi():
+    """Get OpenAPI specification for inventory wrapped array endpoint"""
+    try:
+        spec_path = os.path.join(
+            os.path.dirname(__file__),
+            'tc_p0_api_002',
+            'openapi_array_handling_wrapped.yaml'
+        )
+
+        with open(spec_path, 'r') as f:
+            spec = yaml.safe_load(f)
+
+        # Update server URL to current host
+        spec['servers'] = [
+            {
+                'url': f'{request.scheme}://{request.host}/api/v1',
+                'description': 'Current server'
+            }
+        ]
+
+        return jsonify(spec), 200
+
+    except Exception as e:
+        return jsonify({
+            'error': 'Failed to load OpenAPI spec',
+            'details': str(e)
+        }), 500
+
+
+@app.route('/api/v1/openapi/inventory-raw', methods=['GET'])
+def get_inventory_raw_openapi():
+    """Get OpenAPI specification for inventory raw array endpoint"""
+    try:
+        spec_path = os.path.join(
+            os.path.dirname(__file__),
+            'tc_p0_api_002',
+            'openapi_array_handling_raw.yaml'
+        )
+
+        with open(spec_path, 'r') as f:
+            spec = yaml.safe_load(f)
+
+        # Update server URL to current host
+        spec['servers'] = [
+            {
+                'url': f'{request.scheme}://{request.host}/api/v1',
+                'description': 'Current server'
+            }
+        ]
+
+        return jsonify(spec), 200
+
+    except Exception as e:
+        return jsonify({
+            'error': 'Failed to load OpenAPI spec',
+            'details': str(e)
+        }), 500
+
+
 @app.route('/api/v1/openapi/employees', methods=['GET'])
 def get_employees_openapi():
     """Get OpenAPI specification for employees endpoint"""
@@ -453,6 +688,7 @@ def root():
         'description': 'REST API for testing nested schema support in watsonx Orchestrate',
         'test_cases': {
             'TC-P0-PY-001': 'Customer Order Processing (Standard Nesting)',
+            'TC-P0-API-002': 'Array Handling (Wrapped & Raw Arrays)',
             'TC-P0-PY-003': 'Employee Management (Complex Scenarios)',
             'Group 4': 'Enum Nested Schemas (Multi-level enum validation)',
             'Group 5': 'Conversational Slot Filling (Incremental data collection)'
