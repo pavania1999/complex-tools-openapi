@@ -11,10 +11,9 @@ info:
     email: support@example.com
 
 servers:
-  - url: https://api.example.com/v1
+  - url: https://complex-tools-openapi.onrender.com/api/v1
     description: Production server
-  - url: https://api-staging.example.com/v1
-    description: Staging server
+
 
 paths:
   /employees/process:

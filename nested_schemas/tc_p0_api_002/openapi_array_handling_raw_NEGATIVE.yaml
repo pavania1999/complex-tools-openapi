@@ -1,0 +1,170 @@
+openapi: 3.0.0
+info:
+  title: Array Handling API - Raw Arrays (TC-P0-API-002 NEGATIVE)
+  description: |
+    Test case for TC-P0-API-002: OpenAPI + React-Intrinsic + gpt-oss-120b + Array Handling
+    
+    **Test Purpose**: Validate that raw arrays are REJECTED with react-intrinsic style
+    
+    **Expected Behavior**:
+    - Import FAILS with error message about wrapping arrays
+    - Tool does NOT appear in catalog
+    - Clear error message provided to user
+    
+    **NEGATIVE TEST**: This spec intentionally uses RAW ARRAYS (incorrect format)
+    to verify that the system properly rejects incompatible array structures.
+    
+    **Test Configuration**:
+    - Agent Style: react-intrinsic
+    - Model: gpt-oss-120b
+    - Priority: P0 (Critical)
+    - Expected Result: IMPORT FAILURE
+    
+    **Why This Fails**:
+    Raw arrays at the root level are not compatible with react-intrinsic style.
+    Arrays must be wrapped in an object property for proper handling.
+  version: 1.0.0
+  contact:
+    name: QA Test Support
+    email: qa-support@example.com
+
+servers:
+  - url: https://complex-tools-openapi.onrender.com/api/v1
+    description: This endpoint should NOT be accessible due to import failure
+
+paths:
+  /inventory/process-items-raw:
+    post:
+      summary: Process inventory items (RAW ARRAY - INCORRECT)
+      description: |
+        **NEGATIVE TEST**: This endpoint uses a RAW ARRAY structure which is INCOMPATIBLE
+        with react-intrinsic style and should cause import failure.
+        
+        **Incorrect Structure**: Request body is directly an array: [{"name": "..."}, ...]
+        **Correct Structure**: Should be wrapped: {"items": [{"name": "..."}, ...]}
+        
+        **Expected Result**: Import fails before this endpoint can be used
+      operationId: processInventoryItemsRaw
+      tags:
+        - Inventory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              # RAW ARRAY - This is INCORRECT and should cause import failure
+              type: array
+              description: |
+                RAW ARRAY (INCORRECT): This array is not wrapped in an object property.
+                This structure is incompatible with react-intrinsic style and should
+                cause the import to fail with a clear error message.
+              items:
+                $ref: '#/components/schemas/InventoryItem'
+            examples:
+              rawArrayExample:
+                summary: Raw array structure (INCORRECT)
+                value:
+                  # This is a raw array - NOT wrapped in an object
+                  - name: Laptop
+                    sku: LAP-001
+                    quantity: 5
+                    price: 999.99
+                  - name: Mouse
+                    sku: MOU-002
+                    quantity: 20
+                    price: 29.99
+      responses:
+        '200':
+          description: This response should never be reached due to import failure
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+
+  /orders/process-batch-raw:
+    post:
+      summary: Process batch orders (RAW ARRAY - INCORRECT)
+      description: |
+        **NEGATIVE TEST**: Another example of RAW ARRAY that should fail import.
+      operationId: processBatchOrdersRaw
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              # RAW ARRAY - This is INCORRECT
+              type: array
+              description: Raw array of orders (INCORRECT structure)
+              items:
+                $ref: '#/components/schemas/Order'
+      responses:
+        '200':
+          description: This response should never be reached
+          content:
+            application/json:
+              schema:
+                type: object
+
+components:
+  schemas:
+    InventoryItem:
+      type: object
+      required:
+        - name
+        - sku
+        - quantity
+        - price
+      properties:
+        name:
+          type: string
+          description: Item name
+        sku:
+          type: string
+          description: Stock Keeping Unit
+        quantity:
+          type: integer
+          description: Quantity in stock
+          minimum: 0
+        price:
+          type: number
+          description: Unit price
+          minimum: 0
+
+    Order:
+      type: object
+      required:
+        - order_id
+        - customer_name
+      properties:
+        order_id:
+          type: string
+        customer_name:
+          type: string
+        items:
+          # Even nested arrays should be wrapped
+          type: array
+          items:
+            type: object
+            properties:
+              product_name:
+                type: string
+              quantity:
+                type: integer
+              unit_price:
+                type: number
+
+# EXPECTED ERROR MESSAGE:
+# ========================
+# "Error importing OpenAPI tool: Raw arrays are not supported with react-intrinsic style.
+#  Please wrap arrays in an object property. For example:
+#  Instead of: type: array, items: {...}
+#  Use: type: object, properties: { items: { type: array, items: {...} } }"
+
+# Made with Bob

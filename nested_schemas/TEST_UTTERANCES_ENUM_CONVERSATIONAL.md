@@ -26,17 +26,16 @@ Parameters:
 ```json
 {
   "success": true,
-  "message": "Account status updated successfully",
+  "message": "Account ACC-12345 updated successfully to active status",
   "account_id": "ACC-12345",
   "status": "active",
-  "type": "personal",
-  "updated_at": "2024-01-29T08:00:00Z",
-  "validation_summary": "All enum validations passed: status=active (valid), type=personal (valid)"
+  "account_type": "personal",
+  "updated_at": "2024-01-29T08:00:00Z"
 }
 ```
 
 **Expected User Response:**
-> "✅ Account ACC-12345 has been updated to active status as a personal account. All validations passed."
+> "✅ Account ACC-12345 has been updated to active status as a personal account."
 
 ---
 
@@ -57,11 +56,11 @@ Parameters:
 ```json
 {
   "success": true,
-  "message": "Account status updated successfully",
+  "message": "Account ACC-67890 updated successfully to inactive status",
   "account_id": "ACC-67890",
   "status": "inactive",
-  "type": "business",
-  "validation_summary": "All enum validations passed: status=inactive (valid), type=business (valid)"
+  "account_type": "business",
+  "updated_at": "2024-01-29T08:00:00Z"
 }
 ```
 
@@ -130,22 +129,21 @@ Parameters:
 ```json
 {
   "success": true,
-  "message": "Customer profile created successfully",
+  "message": "Customer profile created successfully for John Doe",
   "customer_id": "CUST-001",
   "customer_name": "John Doe",
   "customer_email": "john.doe@example.com",
   "customer_type": "individual",
-  "address_formatted": "123 Main St, New York, NY, 10001, US",
+  "address": "123 Main St, New York, NY, 10001, US",
   "country": "US",
-  "contact_phone": "+1-555-0100",
-  "contact_mobile": "+1-555-0101",
-  "validation_summary": "All enum validations passed: type=individual (valid), country=US (valid)",
+  "phone": "+1-555-0100",
+  "mobile": "+1-555-0101",
   "created_at": "2024-01-29T08:00:00Z"
 }
 ```
 
 **Expected User Response:**
-> "✅ Customer profile created for John Doe (individual) at 123 Main St, New York, NY, 10001, US. All enum validations passed."
+> "✅ Customer profile created for John Doe (individual) at 123 Main St, New York, NY, 10001, US."
 
 ---
 
@@ -174,14 +172,14 @@ Parameters:
 ```json
 {
   "success": true,
-  "message": "Customer profile created successfully",
+  "message": "Customer profile created successfully for Acme Corporation",
   "customer_id": "CUST-002",
   "customer_name": "Acme Corporation",
   "customer_email": "contact@acme.com",
   "customer_type": "corporate",
-  "address_formatted": "456 Business Ave, Toronto, ON, M5H 2N2, CA",
+  "address": "456 Business Ave, Toronto, ON, M5H 2N2, CA",
   "country": "CA",
-  "validation_summary": "All enum validations passed: type=corporate (valid), country=CA (valid)"
+  "created_at": "2024-01-29T08:00:00Z"
 }
 ```
 
@@ -286,35 +284,23 @@ Parameters:
 ```json
 {
   "success": true,
-  "message": "Profile created with all enum validations passed",
+  "message": "Profile PROF-001 created successfully for Alice Johnson",
   "profile_id": "PROF-001",
-  "profile_status": "active",
+  "status": "active",
   "customer_name": "Alice Johnson",
   "customer_email": "alice@example.com",
   "customer_type": "individual",
-  "address_formatted": "321 Oak Ave, Seattle, WA, 98101, US",
+  "address": "321 Oak Ave, Seattle, WA, 98101, US",
   "country": "US",
-  "contact_phone": "+1-206-555-0300",
+  "phone": "+1-206-555-0300",
   "contact_preference": "email",
-  "contact_timezone": "PST",
-  "enum_validation_report": {
-    "level_0_status": "status=active (valid)",
-    "level_1_customer_type": "customer_type=individual (valid)",
-    "level_2_address_country": "address_country=US (valid)",
-    "level_3_contact_preference": "contact_preference=email (valid)",
-    "total_enum_fields": 4,
-    "all_valid": true
-  },
+  "timezone": "PST",
   "created_at": "2024-01-29T08:00:00Z"
 }
 ```
 
 **Expected User Response:**
-> "✅ Profile PROF-001 created for Alice Johnson with all 4 enum validations passed:
-> - Status: active ✓
-> - Customer Type: individual ✓
-> - Country: US ✓
-> - Contact Preference: email ✓"
+> "✅ Profile PROF-001 created successfully for Alice Johnson (individual) in Seattle, US with email contact preference."
 
 ---
 
@@ -340,43 +326,39 @@ Parameters:
 ```json
 {
   "success": false,
-  "error": "ENUM_VALIDATION_ERROR",
-  "message": "One or more enum validation failures detected",
+  "error": "VALIDATION_ERROR",
+  "message": "One or more validation failures detected",
   "validation_failures": [
     {
-      "field_path": "status",
+      "field": "status",
       "provided_value": "suspended",
-      "allowed_values": ["active", "inactive"],
-      "nesting_level": 0
+      "allowed_values": ["active", "inactive"]
     },
     {
-      "field_path": "customer.type",
+      "field": "customer.type",
       "provided_value": "nonprofit",
-      "allowed_values": ["individual", "corporate"],
-      "nesting_level": 1
+      "allowed_values": ["individual", "corporate"]
     },
     {
-      "field_path": "customer.address.country",
+      "field": "customer.address.country",
       "provided_value": "MX",
-      "allowed_values": ["US", "CA", "UK"],
-      "nesting_level": 2
+      "allowed_values": ["US", "CA", "UK"]
     },
     {
-      "field_path": "customer.contact.preference",
+      "field": "customer.contact.preference",
       "provided_value": "fax",
-      "allowed_values": ["email", "phone", "sms"],
-      "nesting_level": 3
+      "allowed_values": ["email", "phone", "sms"]
     }
   ]
 }
 ```
 
 **Expected User Response:**
-> "❌ Multiple enum validation failures detected:
-> - Level 0 (status): 'suspended' invalid, allowed: active, inactive
-> - Level 1 (customer.type): 'nonprofit' invalid, allowed: individual, corporate
-> - Level 2 (country): 'MX' invalid, allowed: US, CA, UK
-> - Level 3 (preference): 'fax' invalid, allowed: email, phone, sms"
+> "❌ Multiple validation failures detected:
+> - status: 'suspended' invalid (allowed: active, inactive)
+> - customer.type: 'nonprofit' invalid (allowed: individual, corporate)
+> - country: 'MX' invalid (allowed: US, CA, UK)
+> - preference: 'fax' invalid (allowed: email, phone, sms)"
 
 ---
 
