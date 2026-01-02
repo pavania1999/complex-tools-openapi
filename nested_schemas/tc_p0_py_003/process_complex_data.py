@@ -44,18 +44,32 @@ def process_employee_data(employee_info: dict) -> dict:
     result = {}
 
     # Check if this is employee data or person relationship data
-    if "employee" in employee_info or "personal" in employee_info:
+    if "employee" in employee_info:
         # Process as employee data
-        employee = employee_info.get("employee", employee_info)
+        employee = employee_info.get("employee", {})
+        result["type"] = "employee"
 
         # Extract personal information
-        personal = employee.get("personal", {})
-        result["employee_name"] = personal.get("name", "Unknown")
-        result["email"] = personal.get("email", "Not provided")
-        result["phone"] = personal.get("phone", "Not provided")
+        personal_info = employee.get("personal_info", {})
+        result["employee_name"] = personal_info.get("name", "Unknown")
+
+        # Extract contact information
+        contact = personal_info.get("contact", {})
+        email = contact.get("email", "")
+        phone = contact.get("phone", "")
+        mobile = contact.get("mobile", "")
+        contact_parts = []
+        if email:
+            contact_parts.append(f"Email: {email}")
+        if phone:
+            contact_parts.append(f"Phone: {phone}")
+        if mobile:
+            contact_parts.append(f"Mobile: {mobile}")
+        result["contact_info"] = ", ".join(
+            contact_parts) if contact_parts else "Not provided"
 
         # Format address
-        address = personal.get("address", {})
+        address = personal_info.get("address", {})
         if address:
             address_parts = [
                 address.get("street", ""),
@@ -65,75 +79,125 @@ def process_employee_data(employee_info: dict) -> dict:
                 address.get("country", "")
             ]
             result["address"] = ", ".join([p for p in address_parts if p])
+        else:
+            result["address"] = "Not provided"
+
+        # Format emergency contact
+        emergency = personal_info.get("emergency_contact", {})
+        if emergency:
+            result["emergency_contact"] = f"{emergency.get('name', 'Unknown')} ({emergency.get('relationship', 'Unknown')}): {emergency.get('phone', 'N/A')}"
+        else:
+            result["emergency_contact"] = "Not provided"
 
         # Extract employment information
         employment = employee.get("employment", {})
+        result["employee_id"] = employment.get("employee_id", "Unknown")
         result["department"] = employment.get("department", "Not assigned")
         result["position"] = employment.get("position", "Not specified")
-        result["level"] = employment.get("level", "")
-        result["manager"] = employment.get("manager", "Not assigned")
-        result["start_date"] = employment.get("startDate", "Unknown")
+        result["start_date"] = employment.get("start_date", "Unknown")
+
+        # Format salary
+        salary = employment.get("salary")
+        if salary:
+            result["salary"] = f"${salary:,}"
+        else:
+            result["salary"] = "Not specified"
+
+        # Format manager
+        manager = employment.get("manager", {})
+        if isinstance(manager, dict):
+            result["manager"] = f"{manager.get('name', 'Unknown')} ({manager.get('employee_id', 'N/A')})"
+        else:
+            result["manager"] = "Not assigned"
 
         # Extract projects
-        projects = employee.get("projects", [])
+        projects = employment.get("projects", [])
         if projects:
-            result["active_projects"] = [
-                f"{p.get('name', 'Unnamed')} ({p.get('role', 'Member')})"
-                for p in projects if p.get("status") == "Active"
+            result["projects"] = [
+                f"{p.get('name', 'Unnamed')} - {p.get('role', 'Member')} ({p.get('status', 'Unknown')})"
+                for p in projects
             ]
-            result["project_count"] = len(projects)
         else:
-            result["active_projects"] = []
-            result["project_count"] = 0
+            result["projects"] = []
 
         # Extract skills
-        skills = employee.get("skills", [])
-        result["skills"] = skills if skills else []
-        result["skill_count"] = len(skills)
+        skills = employment.get("skills", [])
+        if skills:
+            result["skills"] = [
+                f"{s.get('name', 'Unknown')}: {s.get('proficiency', 'Unknown')} ({s.get('years_experience', 0)} years)"
+                for s in skills
+            ]
+        else:
+            result["skills"] = []
 
         # Extract certifications
-        certifications = employee.get("certifications", [])
+        certifications = employment.get("certifications", [])
         if certifications:
             result["certifications"] = [
-                f"{c.get('name', 'Unknown')} (expires: {c.get('expiryDate', 'N/A')})"
+                f"{c.get('name', 'Unknown')} ({c.get('issuer', 'Unknown')}) - Obtained: {c.get('date_obtained', 'N/A')}, Expires: {c.get('expiry_date', 'N/A')}"
                 for c in certifications
             ]
         else:
             result["certifications"] = []
 
         # Extract performance data
-        performance = employee.get("performance", {})
-        result["performance_rating"] = performance.get("rating", "Not rated")
-        result["goals"] = performance.get("goals", [])
+        performance = employment.get("performance", {})
+        if performance:
+            rating = performance.get("rating", "N/A")
+            last_review = performance.get("last_review_date", "N/A")
+            next_review = performance.get("next_review_date", "N/A")
+            result["performance"] = f"Rating: {rating}/5, Last Review: {last_review}, Next Review: {next_review}"
+        else:
+            result["performance"] = "Not available"
 
         # Create summary message
-        result["summary"] = f"Employee profile for {result['employee_name']}, {result['position']} in {result['department']}"
+        result["summary"] = f"Employee profile for {result['employee_name']} ({result['employee_id']}) - {result['position']} in {result['department']}"
 
-    elif "person" in employee_info or "friendOf" in employee_info:
-        # Process as person relationship data
-        person = employee_info.get("person", employee_info)
-
+    elif "person" in employee_info:
+        # Process as person relationship data (circular reference detection)
+        person = employee_info.get("person", {})
+        result["type"] = "person"
         result["person_name"] = person.get("name", "Unknown")
-        result["email"] = person.get("email", "Not provided")
-        result["age"] = person.get("age", "Not provided")
+        result["employee_id"] = person.get("employee_id", "Unknown")
 
-        # Handle friend relationships
-        if "friendOf" in person:
-            friend = person["friendOf"]
-            result["friend_name"] = friend.get("name", "Unknown")
-            result["relationship"] = f"{result['person_name']} is friends with {result['friend_name']}"
+        # Detect circular references in manager chain
+        visited = set()
+        relationship_chain = []
+        current = person
+        circular_detected = False
 
-            # Check for mutual friendship
-            if "friendOf" in friend:
-                mutual_friend = friend["friendOf"]
-                if mutual_friend.get("name") == result["person_name"]:
-                    result["relationship_type"] = "Mutual friends"
-                else:
-                    result["relationship_type"] = "Friend connection"
-            else:
-                result["relationship_type"] = "One-way friendship"
+        # Add the starting person first
+        current_id = current.get("employee_id", "")
+        current_name = current.get("name", "Unknown")
+        visited.add(current_id)
+        relationship_chain.append(current_name)
 
-        result["summary"] = f"Person profile for {result['person_name']}"
+        # Traverse the manager chain
+        while current and "manager" in current:
+            current = current.get("manager", {})
+            if not current:
+                break
+
+            current_id = current.get("employee_id", "")
+            current_name = current.get("name", "Unknown")
+
+            if current_id in visited:
+                # Circular reference detected
+                circular_detected = True
+                relationship_chain.append(current_name)
+                break
+
+            visited.add(current_id)
+            relationship_chain.append(current_name)
+
+        result["relationship"] = " → ".join(relationship_chain)
+        result["relationship_type"] = "circular" if circular_detected else "linear"
+        result["circular_reference_detected"] = circular_detected
+
+        if circular_detected:
+            result["message"] = "Circular reference detected in management chain"
+        else:
+            result["message"] = "No circular reference detected"
 
     else:
         result["error"] = "Unable to process data - please provide employee or person information"
@@ -142,95 +206,123 @@ def process_employee_data(employee_info: dict) -> dict:
 
 
 if __name__ == '__main__':
-    # Demo 1: Employee Data
+    # Demo 1: Employee Data (matches OpenAPI schema)
     print("="*60)
     print("Demo 1: Employee Management")
     print("="*60)
 
     employee_data = {
         "employee": {
-            "personal": {
+            "personal_info": {
                 "name": "John Doe",
-                "email": "john.doe@company.com",
-                "phone": "+1-555-0100",
+                "date_of_birth": "1990-05-15",
+                "ssn": "123-45-6789",
+                "contact": {
+                    "email": "john.doe@company.com",
+                    "phone": "+1-555-0100",
+                    "mobile": "+1-555-0101"
+                },
                 "address": {
-                    "street": "123 Main St",
+                    "street": "123 Tech Street",
                     "city": "San Francisco",
                     "state": "CA",
-                    "zipcode": "94102",
+                    "zipcode": "94105",
                     "country": "USA"
+                },
+                "emergency_contact": {
+                    "name": "Jane Doe",
+                    "relationship": "Spouse",
+                    "phone": "+1-555-0102"
                 }
             },
             "employment": {
-                "department": "Engineering",
+                "employee_id": "EMP-001",
                 "position": "Senior Software Engineer",
-                "level": "L5",
-                "manager": "Jane Smith",
-                "startDate": "2020-03-01"
-            },
-            "projects": [
-                {"name": "Project Alpha", "role": "Tech Lead", "status": "Active"},
-                {"name": "Project Beta", "role": "Contributor", "status": "Active"}
-            ],
-            "skills": ["Python", "JavaScript", "AWS", "Docker"],
-            "certifications": [
-                {"name": "AWS Solutions Architect", "expiryDate": "2025-05-01"}
-            ],
-            "performance": {
-                "rating": 4.5,
-                "goals": ["Lead major project", "Mentor junior engineers"]
+                "department": "Engineering",
+                "start_date": "2024-01-15",
+                "salary": 120000,
+                "manager": {
+                    "employee_id": "EMP-100",
+                    "name": "Bob Smith"
+                },
+                "projects": [
+                    {"name": "Cloud Migration",
+                        "role": "Tech Lead", "status": "Active"},
+                    {"name": "API Redesign", "role": "Developer",
+                        "status": "Completed"}
+                ],
+                "skills": [
+                    {"name": "Python", "proficiency": "Expert", "years_experience": 5},
+                    {"name": "AWS", "proficiency": "Advanced", "years_experience": 3}
+                ],
+                "certifications": [
+                    {
+                        "name": "AWS Solutions Architect",
+                        "issuer": "Amazon Web Services",
+                        "date_obtained": "2023-06-15",
+                        "expiry_date": "2026-06-15"
+                    }
+                ],
+                "performance": {
+                    "rating": 4.5,
+                    "last_review_date": "2023-12-01",
+                    "next_review_date": "2024-06-01"
+                }
             }
         }
     }
 
     result = process_employee_data(employee_data)
+    print(f"\nType: {result['type']}")
     print(f"\n{result['summary']}")
-    print(f"\nContact: {result['email']} | {result['phone']}")
+    print(f"\nContact: {result['contact_info']}")
     print(f"Address: {result['address']}")
+    print(f"Emergency Contact: {result['emergency_contact']}")
     print(f"\nEmployment:")
-    print(f"  Position: {result['position']} ({result['level']})")
+    print(f"  Position: {result['position']}")
     print(f"  Department: {result['department']}")
     print(f"  Manager: {result['manager']}")
     print(f"  Start Date: {result['start_date']}")
-    print(f"\nProjects ({result['project_count']}):")
-    for project in result['active_projects']:
+    print(f"  Salary: {result['salary']}")
+    print(f"\nProjects ({len(result['projects'])}):")
+    for project in result['projects']:
         print(f"  - {project}")
-    print(f"\nSkills ({result['skill_count']}): {', '.join(result['skills'])}")
+    print(f"\nSkills ({len(result['skills'])}):")
+    for skill in result['skills']:
+        print(f"  - {skill}")
     print(f"\nCertifications:")
     for cert in result['certifications']:
         print(f"  - {cert}")
-    print(f"\nPerformance Rating: {result['performance_rating']}/5.0")
-    print(f"Goals: {', '.join(result['goals'])}")
+    print(f"\nPerformance: {result['performance']}")
 
-    # Demo 2: Person Relationships
+    # Demo 2: Circular Reference Detection
     print("\n" + "="*60)
-    print("Demo 2: Person Relationships")
+    print("Demo 2: Circular Reference Detection")
     print("="*60)
 
-    person1 = {
-        "id": "P001",
-        "name": "Alice",
-        "email": "alice@example.com",
-        "age": 30
+    circular_data = {
+        "person": {
+            "name": "Alice Johnson",
+            "employee_id": "EMP-001",
+            "manager": {
+                "name": "Bob Smith",
+                "employee_id": "EMP-002",
+                "manager": {
+                    "name": "Alice Johnson",
+                    "employee_id": "EMP-001"
+                }
+            }
+        }
     }
 
-    person2 = {
-        "id": "P002",
-        "name": "Bob",
-        "email": "bob@example.com",
-        "age": 32
-    }
-
-    person1["friendOf"] = person2
-    person2["friendOf"] = person1
-
-    person_data = {"person": person1}
-
-    result = process_employee_data(person_data)
-    print(f"\n{result['summary']}")
-    print(f"Email: {result['email']}")
-    print(f"Age: {result['age']}")
-    print(f"\nRelationship: {result['relationship']}")
-    print(f"Type: {result['relationship_type']}")
+    result = process_employee_data(circular_data)
+    print(f"\nType: {result['type']}")
+    print(f"Person: {result['person_name']}")
+    print(f"Employee ID: {result['employee_id']}")
+    print(f"\nRelationship Chain: {result['relationship']}")
+    print(f"Relationship Type: {result['relationship_type']}")
+    print(
+        f"Circular Reference Detected: {result['circular_reference_detected']}")
+    print(f"Message: {result['message']}")
 
 # Made with Bob - Real-world employee management tool

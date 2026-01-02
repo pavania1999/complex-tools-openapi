@@ -1,0 +1,29 @@
+{
+    "name": "array-handling-api",
+    "version": "1.0.0",
+    "description": "MCP Server for Array Handling API - demonstrates array processing with nested objects",
+    "type": "module",
+    "main": "build/index.js",
+    "scripts": {
+        "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+        "prepare": "npm run build",
+        "watch": "tsc --watch"
+    },
+    "keywords": [
+        "mcp",
+        "array-handling",
+        "nested-schemas"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.0.4"
+    },
+    "devDependencies": {
+        "@types/node": "^22.10.2",
+        "typescript": "^5.7.2"
+    },
+    "bin": {
+        "array-handling-api": "./build/index.js"
+    }
+}
