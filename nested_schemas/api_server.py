@@ -21,7 +21,7 @@ Endpoints:
     POST /api/v1/inventory/process-items-raw - Process inventory items (raw array)
     POST /api/v1/orders/process-batch - Process batch orders (wrapped array)
     POST /api/v1/orders/process-batch-raw - Process batch orders (raw array)
-    POST /api/v1/employees/process - Process employee data
+    POST /api/v1/employees/register - Register employee with manager information
     POST /api/v1/account/status - Update account status (enum validation)
     POST /api/v1/customer/profile - Create customer profile (nested enums)
     POST /api/v1/customer/multi-level-enum - Multi-level enum validation
@@ -33,7 +33,7 @@ Endpoints:
     GET /api/v1/openapi/* - Get OpenAPI specs
 """
 
-from tc_p0_py_003.process_complex_data import process_employee_data
+from tc_p0_py_003.register_employee import register_employee
 from tc_p0_py_001.process_customer_order import process_customer_order
 from tc_p0_api_002.process_array_handling import (
     process_inventory_items,
@@ -85,7 +85,7 @@ def health_check():
             'inventory_raw': '/api/v1/inventory/process-items-raw',
             'batch_orders_wrapped': '/api/v1/orders/process-batch',
             'batch_orders_raw': '/api/v1/orders/process-batch-raw',
-            'employees': '/api/v1/employees/process',
+            'employees': '/api/v1/employees/register',
             'account_status': '/api/v1/account/status',
             'customer_profile': '/api/v1/customer/profile',
             'multi_level_enum': '/api/v1/customer/multi-level-enum',
@@ -301,21 +301,28 @@ def api_process_batch_orders_raw():
         }), 500
 
 
-# Employee Management endpoint (TC-P0-PY-003)
-@app.route('/api/v1/employees/process', methods=['POST'])
-def process_employee():
+# Employee Registration endpoint (TC-P0-PY-003)
+@app.route('/api/v1/employees/register', methods=['POST'])
+def register_employee_endpoint():
     """
-    Process employee data with complex nested structures
+    Register new employee with manager information
 
     Request Body:
         {
-            "employee": {...}  // For employee data
-            OR
-            "person": {...}    // For circular reference testing
+            "employee": {
+                "name": "...",
+                "employee_id": "...",
+                "email": "...",
+                "phone": "...",
+                "department": "...",
+                "position": "...",
+                "start_date": "...",
+                "manager": { ... }  // Optional, uses same Person schema
+            }
         }
 
     Returns:
-        Employee profile or relationship analysis
+        Registration confirmation with employee summary and reporting chain
     """
     try:
         # Get request data
@@ -323,18 +330,27 @@ def process_employee():
 
         if not employee_data:
             return jsonify({
+                'status': 'error',
                 'error': 'Invalid request',
-                'code': 'INVALID_REQUEST',
+                'code': 'INVALID_JSON',
                 'details': 'Request body must be valid JSON'
             }), 400
 
-        # Process the employee data
-        result = process_employee_data(employee_data)
+        # Register the employee
+        result = register_employee(employee_data)
+
+        # Check if there was an error
+        if result.get('status') == 'error':
+            status_code = 400
+            if result.get('code') == 'DUPLICATE_EMPLOYEE':
+                status_code = 409
+            return jsonify(result), status_code
 
         return jsonify(result), 200
 
     except Exception as e:
         return jsonify({
+            'status': 'error',
             'error': 'Internal server error',
             'code': 'INTERNAL_ERROR',
             'details': str(e)
@@ -650,12 +666,12 @@ def get_inventory_raw_openapi():
 
 @app.route('/api/v1/openapi/employees', methods=['GET'])
 def get_employees_openapi():
-    """Get OpenAPI specification for employees endpoint"""
+    """Get OpenAPI specification for employee registration endpoint"""
     try:
         spec_path = os.path.join(
             os.path.dirname(__file__),
             'tc_p0_py_003',
-            'openapi_employee_management.yaml'
+            'openapi_add_employee_with_manager.yaml'
         )
 
         with open(spec_path, 'r') as f:
@@ -696,7 +712,7 @@ def root():
         'endpoints': {
             'health': '/api/v1/health',
             'orders': '/api/v1/orders/process',
-            'employees': '/api/v1/employees/process',
+            'employees': '/api/v1/employees/register',
             'account_status': '/api/v1/account/status',
             'customer_profile': '/api/v1/customer/profile',
             'multi_level_enum': '/api/v1/customer/multi-level-enum',
@@ -755,7 +771,7 @@ if __name__ == '__main__':
     print("  GET  /                                                  - API information")
     print("  GET  /api/v1/health                                     - Health check")
     print("  POST /api/v1/orders/process                             - Process customer orders")
-    print("  POST /api/v1/employees/process                          - Process employee data")
+    print("  POST /api/v1/employees/register                         - Register employee with manager")
     print("  POST /api/v1/account/status                             - Update account status (enum)")
     print("  POST /api/v1/customer/profile                           - Create customer profile (nested enum)")
     print("  POST /api/v1/customer/multi-level-enum                  - Multi-level enum validation")
