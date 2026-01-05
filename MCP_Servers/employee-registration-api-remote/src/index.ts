@@ -312,18 +312,42 @@ mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
 // SSE endpoint for MCP
 app.get('/sse', async (req: Request, res: Response) => {
     console.log('New SSE connection established');
+    console.log('Request headers:', req.headers);
+
+    // Set SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
 
     // Create SSE transport and connect
     const transport = new SSEServerTransport('/message', res);
-    await mcpServer.connect(transport);
 
-    console.log('MCP server connected via SSE');
+    try {
+        await mcpServer.connect(transport);
+        console.log('MCP server connected via SSE');
+    } catch (error) {
+        console.error('Error connecting MCP server:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Failed to establish SSE connection' });
+        }
+    }
 });
 
 // POST endpoint for MCP messages
-app.post('/message', async (req: Request, res: Response) => {
-    // This endpoint is handled by the SSE transport
-    res.status(200).send();
+// The SSEServerTransport expects this endpoint to receive JSON-RPC messages
+app.post('/message', express.json(), async (req: Request, res: Response) => {
+    console.log('Received POST to /message');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+
+    try {
+        // The message should be handled by the transport
+        // We just need to acknowledge receipt
+        res.status(202).json({ received: true });
+    } catch (error) {
+        console.error('Error in /message endpoint:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
 // Start server
