@@ -207,96 +207,67 @@ app.get('/', (req: Request, res: Response) => {
     });
 });
 
-// SSE endpoint for MCP
-app.get('/sse', async (req: Request, res: Response) => {
-    console.log('New SSE connection established');
-
-    // Set SSE headers
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');
-
-    // Create MCP server instance
-    const server = new Server(
-        {
-            name: "employee-registration-api-remote",
-            version: "1.0.0",
+// Create MCP server instance (shared across connections)
+const mcpServer = new Server(
+    {
+        name: "employee-registration-api-remote",
+        version: "1.0.0",
+    },
+    {
+        capabilities: {
+            tools: {},
         },
-        {
-            capabilities: {
-                tools: {},
-            },
-        }
-    );
+    }
+);
 
-    // List available tools
-    server.setRequestHandler(ListToolsRequestSchema, async () => {
-        return {
-            tools: TOOLS,
-        };
-    });
+// List available tools
+mcpServer.setRequestHandler(ListToolsRequestSchema, async () => {
+    return {
+        tools: TOOLS,
+    };
+});
 
-    // Handle tool calls
-    server.setRequestHandler(CallToolRequestSchema, async (request) => {
-        const { name, arguments: args } = request.params;
+// Handle tool calls
+mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
 
-        if (name === "register_employee") {
-            try {
-                const registrationRequest = args as unknown as EmployeeRegistrationRequest;
+    if (name === "register_employee") {
+        try {
+            const registrationRequest = args as unknown as EmployeeRegistrationRequest;
 
-                // Make API call to the deployed endpoint
-                const response = await axios.post<EmployeeRegistrationResponse>(
-                    `${API_BASE_URL}/employees/register`,
-                    registrationRequest,
-                    {
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        timeout: 30000, // 30 second timeout
-                    }
-                );
-
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: JSON.stringify(response.data, null, 2),
-                        },
-                    ],
-                };
-            } catch (error) {
-                if (axios.isAxiosError(error)) {
-                    const errorResponse = error.response?.data as ErrorResponse;
-                    return {
-                        content: [
-                            {
-                                type: "text",
-                                text: JSON.stringify(
-                                    {
-                                        error: errorResponse?.error || error.message,
-                                        code: errorResponse?.code || "API_ERROR",
-                                        details: errorResponse?.details || error.response?.statusText,
-                                        status: error.response?.status,
-                                    },
-                                    null,
-                                    2
-                                ),
-                            },
-                        ],
-                        isError: true,
-                    };
+            // Make API call to the deployed endpoint
+            const response = await axios.post<EmployeeRegistrationResponse>(
+                `${API_BASE_URL}/employees/register`,
+                registrationRequest,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    timeout: 30000, // 30 second timeout
                 }
+            );
 
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: JSON.stringify(response.data, null, 2),
+                    },
+                ],
+            };
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                const errorResponse = error.response?.data as ErrorResponse;
                 return {
                     content: [
                         {
                             type: "text",
                             text: JSON.stringify(
                                 {
-                                    error: "Failed to register employee",
-                                    code: "UNKNOWN_ERROR",
-                                    details: error instanceof Error ? error.message : String(error),
+                                    error: errorResponse?.error || error.message,
+                                    code: errorResponse?.code || "API_ERROR",
+                                    details: errorResponse?.details || error.response?.statusText,
+                                    status: error.response?.status,
                                 },
                                 null,
                                 2
@@ -306,24 +277,45 @@ app.get('/sse', async (req: Request, res: Response) => {
                     isError: true,
                 };
             }
+
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: JSON.stringify(
+                            {
+                                error: "Failed to register employee",
+                                code: "UNKNOWN_ERROR",
+                                details: error instanceof Error ? error.message : String(error),
+                            },
+                            null,
+                            2
+                        ),
+                    },
+                ],
+                isError: true,
+            };
         }
+    }
 
-        return {
-            content: [
-                {
-                    type: "text",
-                    text: `Unknown tool: ${name}`,
-                },
-            ],
-            isError: true,
-        };
-    });
+    return {
+        content: [
+            {
+                type: "text",
+                text: `Unknown tool: ${name}`,
+            },
+        ],
+        isError: true,
+    };
+});
 
-    // Create SSE transport
+// SSE endpoint for MCP
+app.get('/sse', async (req: Request, res: Response) => {
+    console.log('New SSE connection established');
+
+    // Create SSE transport and connect
     const transport = new SSEServerTransport('/message', res);
-
-    // Connect server to transport
-    await server.connect(transport);
+    await mcpServer.connect(transport);
 
     console.log('MCP server connected via SSE');
 });
