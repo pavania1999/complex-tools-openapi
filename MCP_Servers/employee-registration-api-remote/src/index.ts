@@ -211,6 +211,12 @@ app.get('/', (req: Request, res: Response) => {
 app.get('/sse', async (req: Request, res: Response) => {
     console.log('New SSE connection established');
 
+    // Set SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+
     // Create MCP server instance
     const server = new Server(
         {
