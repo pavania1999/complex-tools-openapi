@@ -238,27 +238,8 @@ app.get('/sse', async (req: Request, res: Response) => {
         }
     );
 
-    // Handle initialize request
-    server.setRequestHandler({ method: "initialize" } as any, async (request: any) => {
-        console.log('Handling Initialize request');
-        console.log('Initialize params:', JSON.stringify(request.params, null, 2));
-
-        const response = {
-            protocolVersion: "2025-11-25",
-            capabilities: {
-                tools: {},
-            },
-            serverInfo: {
-                name: "employee-registration-api-remote",
-                version: "1.0.0",
-            },
-        };
-
-        console.log('Initialize response:', JSON.stringify(response, null, 2));
-        return response;
-    });
-
     // List available tools
+    // Note: The MCP SDK handles the initialize request automatically
     server.setRequestHandler(ListToolsRequestSchema, async () => {
         console.log('Handling ListTools request');
         return {
