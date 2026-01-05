@@ -329,8 +329,8 @@ app.get('/sse', async (req: Request, res: Response) => {
         };
     });
 
-    // Create SSE transport with session-specific endpoint
-    const transport = new SSEServerTransport(`/message/${sessionId}`, res);
+    // Create SSE transport with standard /message endpoint
+    const transport = new SSEServerTransport('/message', res);
     activeTransports.set(sessionId, transport);
 
     // Clean up on connection close
@@ -351,18 +351,20 @@ app.get('/sse', async (req: Request, res: Response) => {
     }
 });
 
-// POST endpoint for MCP messages with session ID
-app.post('/message/:sessionId', async (req: Request, res: Response) => {
-    const { sessionId } = req.params;
-    console.log(`Received POST to /message/${sessionId}`);
+// POST endpoint for MCP messages
+// Use the most recent transport (supports one active connection at a time)
+app.post('/message', async (req: Request, res: Response) => {
+    console.log('Received POST to /message');
     console.log('Request body:', JSON.stringify(req.body, null, 2));
+    console.log(`Active transports: ${activeTransports.size}`);
 
-    const transport = activeTransports.get(sessionId);
+    // Get the most recent transport (last one added)
+    const transports = Array.from(activeTransports.values());
+    const transport = transports[transports.length - 1];
 
     if (!transport) {
-        console.error(`No active transport found for session: ${sessionId}`);
-        console.error(`Available sessions: ${Array.from(activeTransports.keys()).join(', ')}`);
-        return res.status(404).json({ error: 'Session not found' });
+        console.error('No active transport found');
+        return res.status(404).json({ error: 'No active SSE connection' });
     }
 
     try {
