@@ -207,67 +207,106 @@ app.get('/', (req: Request, res: Response) => {
     });
 });
 
-// Create MCP server instance (shared across connections)
-const mcpServer = new Server(
-    {
-        name: "employee-registration-api-remote",
-        version: "1.0.0",
-    },
-    {
-        capabilities: {
-            tools: {},
+// Store active transports by connection
+const activeTransports = new Map<string, SSEServerTransport>();
+
+// SSE endpoint for MCP
+app.get('/sse', async (req: Request, res: Response) => {
+    console.log('New SSE connection established');
+    console.log('Request headers:', req.headers);
+
+    // Generate a unique session ID for this connection
+    const sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    console.log(`Session ID: ${sessionId}`);
+
+    // Set SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+
+    // Create a new MCP server instance for this connection
+    const server = new Server(
+        {
+            name: "employee-registration-api-remote",
+            version: "1.0.0",
         },
-    }
-);
+        {
+            capabilities: {
+                tools: {},
+            },
+        }
+    );
 
-// List available tools
-mcpServer.setRequestHandler(ListToolsRequestSchema, async () => {
-    return {
-        tools: TOOLS,
-    };
-});
+    // List available tools
+    server.setRequestHandler(ListToolsRequestSchema, async () => {
+        console.log('Handling ListTools request');
+        return {
+            tools: TOOLS,
+        };
+    });
 
-// Handle tool calls
-mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name, arguments: args } = request.params;
+    // Handle tool calls
+    server.setRequestHandler(CallToolRequestSchema, async (request) => {
+        console.log('Handling CallTool request:', request.params.name);
+        const { name, arguments: args } = request.params;
 
-    if (name === "register_employee") {
-        try {
-            const registrationRequest = args as unknown as EmployeeRegistrationRequest;
+        if (name === "register_employee") {
+            try {
+                const registrationRequest = args as unknown as EmployeeRegistrationRequest;
 
-            // Make API call to the deployed endpoint
-            const response = await axios.post<EmployeeRegistrationResponse>(
-                `${API_BASE_URL}/employees/register`,
-                registrationRequest,
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    timeout: 30000, // 30 second timeout
-                }
-            );
-
-            return {
-                content: [
+                // Make API call to the deployed endpoint
+                const response = await axios.post<EmployeeRegistrationResponse>(
+                    `${API_BASE_URL}/employees/register`,
+                    registrationRequest,
                     {
-                        type: "text",
-                        text: JSON.stringify(response.data, null, 2),
-                    },
-                ],
-            };
-        } catch (error) {
-            if (axios.isAxiosError(error)) {
-                const errorResponse = error.response?.data as ErrorResponse;
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        timeout: 30000, // 30 second timeout
+                    }
+                );
+
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: JSON.stringify(response.data, null, 2),
+                        },
+                    ],
+                };
+            } catch (error) {
+                if (axios.isAxiosError(error)) {
+                    const errorResponse = error.response?.data as ErrorResponse;
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: JSON.stringify(
+                                    {
+                                        error: errorResponse?.error || error.message,
+                                        code: errorResponse?.code || "API_ERROR",
+                                        details: errorResponse?.details || error.response?.statusText,
+                                        status: error.response?.status,
+                                    },
+                                    null,
+                                    2
+                                ),
+                            },
+                        ],
+                        isError: true,
+                    };
+                }
+
                 return {
                     content: [
                         {
                             type: "text",
                             text: JSON.stringify(
                                 {
-                                    error: errorResponse?.error || error.message,
-                                    code: errorResponse?.code || "API_ERROR",
-                                    details: errorResponse?.details || error.response?.statusText,
-                                    status: error.response?.status,
+                                    error: "Failed to register employee",
+                                    code: "UNKNOWN_ERROR",
+                                    details: error instanceof Error ? error.message : String(error),
                                 },
                                 null,
                                 2
@@ -277,76 +316,67 @@ mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
                     isError: true,
                 };
             }
-
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify(
-                            {
-                                error: "Failed to register employee",
-                                code: "UNKNOWN_ERROR",
-                                details: error instanceof Error ? error.message : String(error),
-                            },
-                            null,
-                            2
-                        ),
-                    },
-                ],
-                isError: true,
-            };
         }
-    }
 
-    return {
-        content: [
-            {
-                type: "text",
-                text: `Unknown tool: ${name}`,
-            },
-        ],
-        isError: true,
-    };
-});
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: `Unknown tool: ${name}`,
+                },
+            ],
+            isError: true,
+        };
+    });
 
-// SSE endpoint for MCP
-app.get('/sse', async (req: Request, res: Response) => {
-    console.log('New SSE connection established');
-    console.log('Request headers:', req.headers);
+    // Create SSE transport with session-specific endpoint
+    const transport = new SSEServerTransport(`/message/${sessionId}`, res);
+    activeTransports.set(sessionId, transport);
 
-    // Set SSE headers
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');
-
-    // Create SSE transport and connect
-    const transport = new SSEServerTransport('/message', res);
+    // Clean up on connection close
+    req.on('close', () => {
+        console.log(`SSE connection closed: ${sessionId}`);
+        activeTransports.delete(sessionId);
+    });
 
     try {
-        await mcpServer.connect(transport);
-        console.log('MCP server connected via SSE');
+        await server.connect(transport);
+        console.log(`MCP server connected via SSE: ${sessionId}`);
     } catch (error) {
         console.error('Error connecting MCP server:', error);
+        activeTransports.delete(sessionId);
         if (!res.headersSent) {
             res.status(500).json({ error: 'Failed to establish SSE connection' });
         }
     }
 });
 
-// POST endpoint for MCP messages
-// The SSEServerTransport expects this endpoint to receive JSON-RPC messages
-app.post('/message', express.json(), async (req: Request, res: Response) => {
-    console.log('Received POST to /message');
+// POST endpoint for MCP messages with session ID
+app.post('/message/:sessionId', async (req: Request, res: Response) => {
+    const { sessionId } = req.params;
+    console.log(`Received POST to /message/${sessionId}`);
     console.log('Request body:', JSON.stringify(req.body, null, 2));
 
+    const transport = activeTransports.get(sessionId);
+
+    if (!transport) {
+        console.error(`No active transport found for session: ${sessionId}`);
+        console.error(`Available sessions: ${Array.from(activeTransports.keys()).join(', ')}`);
+        return res.status(404).json({ error: 'Session not found' });
+    }
+
     try {
-        // The message should be handled by the transport
-        // We just need to acknowledge receipt
-        res.status(202).json({ received: true });
+        console.log('Calling transport.handlePostMessage...');
+        await transport.handlePostMessage(req, res);
+        console.log('Message handled successfully');
     } catch (error) {
-        console.error('Error in /message endpoint:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error('Error handling message:', error);
+        if (error instanceof Error) {
+            console.error('Error stack:', error.stack);
+        }
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Internal server error' });
+        }
     }
 });
 
