@@ -1,0 +1,62 @@
+{
+    "customer": {
+        "address": {
+            "city": "Anytown",
+            "country": "USA",
+            "state": "CA",
+            "street": "123 Main St",
+            "zipcode": "90210"
+        },
+        "contact": {
+            "phone": "555-1234"
+        },
+        "email": "john.doe@example.com",
+        "name": "John Doe"
+    },
+    "order": {
+        "billing_address": {
+            "city": "Othertown",
+            "country": "USA",
+            "state": "NY",
+            "street": "456 Oak Ave",
+            "zipcode": "10001"
+        },
+        "items": [
+            {
+                "price": 19.99,
+                "product": {
+                    "details": {
+                        "description": "A useful widget",
+                        "specifications": {
+                            "dimensions": "5x5x5 cm",
+                            "weight": "100g"
+                        }
+                    },
+                    "name": "Widget",
+                    "product_id": "P-001"
+                },
+                "quantity": 2
+            },
+            {
+                "price": 49.99,
+                "product": {
+                    "details": {
+                        "description": "A fancy gadget"
+                    },
+                    "name": "Gadget",
+                    "product_id": "P-002"
+                },
+                "quantity": 1
+            }
+        ],
+        "order_date": "2024-12-01",
+        "order_id": "ORD-1001",
+        "shipping_address": {
+            "city": "Othertown",
+            "country": "USA",
+            "state": "NY",
+            "street": "456 Oak Ave",
+            "zipcode": "10001"
+        }
+    }
+}

@@ -1,9 +1,27 @@
-orchestrate toolkits add --kind mcp --name nested_reference_api_local \
+
+##Nested reference API TC01
+orchestrate toolkits add --kind mcp --name nested_reference_api_local_second \
   --description "Process customer orders with nested address references demonstrating $ref pattern" \
-  --package-root /Users/pavaniaddepalli/Documents/Cline/MCP/nested-reference-api/nested-reference-api.zip \
+  --package-root /Users/pavaniaddepalli/Documents/Docs/BOB/Complex_Tools/MCP_Servers/nested-reference-api_fix.zip \
   --command "node build/index.js" \
   --tools '*'
 
+  orchestrate toolkits add --kind mcp --name nested_reference_api_local_second \
+    --description "Process customer orders with nested address references demonstrating $ref pattern" \
+    --package-root /Users/pavaniaddepalli/Documents/Docs/BOB/Complex_Tools/MCP_Servers/nested_reference_fix_final.zip \
+    --command "node build/index.js" \
+    --tools '*'
+
+
+orchestrate toolkits add --kind mcp --name nested_reference_api_local_1 \
+  --description "Process customer orders with nested address references demonstrating $ref pattern" \
+  --package-root /Users/pavaniaddepalli/Documents/Docs/BOB/Complex_Tools/MCP_Servers/nested-reference-api-fixed.zip \
+  --command "node build/index.js" \
+  --tools '*'
+
+#command to test this in local 
+
+cd MCP_Servers/nested-reference-api && mv test-local.js test-local.cjs && node test-local.cjs
 
 
 orchestrate toolkits add --kind mcp --name moody-mcp-demo --description "Moody MCP" --package-root /Users/pavaniaddepalli/Documents/Docs/BOB/Complex_Tools/MCP_Servers/zod-mcp-fixed.zip --command "node server.js" --tools '*'    
