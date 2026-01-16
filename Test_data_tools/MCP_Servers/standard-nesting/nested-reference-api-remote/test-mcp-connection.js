@@ -8,13 +8,16 @@
 import EventSource from 'eventsource';
 import fetch from 'node-fetch';
 
-const SSE_URL = 'https://nested-reference-api-remote-mcp.onrender.com/sse';
-const MESSAGE_URL = 'https://nested-reference-api-remote-mcp.onrender.com/message';
+const SSE_URL = process.env.TEST_URL || 'http://localhost:3456/sse';
+const MESSAGE_URL = process.env.TEST_URL ? process.env.TEST_URL.replace('/sse', '/message') : 'http://localhost:3456/message';
 
 console.log('Testing MCP Server Connection...\n');
 console.log('SSE URL:', SSE_URL);
 console.log('Message URL:', MESSAGE_URL);
 console.log('---\n');
+
+let messageId = 1;
+const pendingRequests = new Map();
 
 // Step 1: Connect to SSE endpoint
 console.log('Step 1: Connecting to SSE endpoint...');
@@ -29,7 +32,7 @@ eventSource.onopen = () => {
         try {
             const initRequest = {
                 jsonrpc: '2.0',
-                id: 1,
+                id: messageId++,
                 method: 'initialize',
                 params: {
                     protocolVersion: '2024-11-05',
@@ -45,6 +48,8 @@ eventSource.onopen = () => {
                 }
             };
 
+            pendingRequests.set(initRequest.id, 'initialize');
+
             const response = await fetch(MESSAGE_URL, {
                 method: 'POST',
                 headers: {
@@ -53,65 +58,18 @@ eventSource.onopen = () => {
                 body: JSON.stringify(initRequest)
             });
 
-            console.log('Initialize response status:', response.status);
-            const text = await response.text();
-            console.log('Initialize response:', text);
-            console.log('');
-
-            // Step 3: Send list tools request
-            setTimeout(async () => {
-                console.log('Step 3: Sending tools/list request...');
-                try {
-                    const listToolsRequest = {
-                        jsonrpc: '2.0',
-                        id: 2,
-                        method: 'tools/list',
-                        params: {}
-                    };
-
-                    const toolsResponse = await fetch(MESSAGE_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(listToolsRequest)
-                    });
-
-                    console.log('List tools response status:', toolsResponse.status);
-                    const toolsText = await toolsResponse.text();
-                    console.log('List tools response:', toolsText);
-
-                    // Parse and display tools
-                    try {
-                        const toolsData = JSON.parse(toolsText);
-                        if (toolsData.result && toolsData.result.tools) {
-                            console.log('\n✓ Tools found:', toolsData.result.tools.length);
-                            toolsData.result.tools.forEach((tool, idx) => {
-                                console.log(`\nTool ${idx + 1}:`);
-                                console.log('  Name:', tool.name);
-                                console.log('  Description:', tool.description.substring(0, 100) + '...');
-                            });
-                        }
-                    } catch (e) {
-                        console.log('Could not parse tools response');
-                    }
-
-                    console.log('\n✓ Test completed successfully!');
-                    eventSource.close();
-                    process.exit(0);
-                } catch (error) {
-                    console.error('✗ Error listing tools:', error.message);
-                    eventSource.close();
-                    process.exit(1);
-                }
-            }, 2000);
+            console.log('Initialize POST status:', response.status);
+            if (response.status !== 202 && response.status !== 200) {
+                const text = await response.text();
+                console.log('Initialize POST response:', text);
+            }
 
         } catch (error) {
-            console.error('✗ Error initializing:', error.message);
+            console.error('✗ Error sending initialize:', error.message);
             eventSource.close();
             process.exit(1);
         }
-    }, 2000);
+    }, 1000);
 };
 
 eventSource.onerror = (error) => {
@@ -121,12 +79,83 @@ eventSource.onerror = (error) => {
 };
 
 eventSource.onmessage = (event) => {
-    console.log('Received SSE message:', event.data);
+    try {
+        const data = JSON.parse(event.data);
+        console.log('\n📨 Received SSE message:');
+        console.log(JSON.stringify(data, null, 2));
+
+        if (data.id && pendingRequests.has(data.id)) {
+            const method = pendingRequests.get(data.id);
+            pendingRequests.delete(data.id);
+
+            if (method === 'initialize' && data.result) {
+                console.log('\n✓ Initialize successful!');
+                console.log('Server capabilities:', JSON.stringify(data.result.capabilities, null, 2));
+
+                // Step 3: Send list tools request
+                setTimeout(async () => {
+                    console.log('\nStep 3: Sending tools/list request...');
+                    try {
+                        const listToolsRequest = {
+                            jsonrpc: '2.0',
+                            id: messageId++,
+                            method: 'tools/list',
+                            params: {}
+                        };
+
+                        pendingRequests.set(listToolsRequest.id, 'tools/list');
+
+                        const toolsResponse = await fetch(MESSAGE_URL, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(listToolsRequest)
+                        });
+
+                        console.log('List tools POST status:', toolsResponse.status);
+                        if (toolsResponse.status !== 202 && toolsResponse.status !== 200) {
+                            const text = await toolsResponse.text();
+                            console.log('List tools POST response:', text);
+                        }
+
+                    } catch (error) {
+                        console.error('✗ Error listing tools:', error.message);
+                        eventSource.close();
+                        process.exit(1);
+                    }
+                }, 1000);
+            } else if (method === 'tools/list' && data.result) {
+                console.log('\n✓ Tools list received!');
+                if (data.result.tools) {
+                    console.log(`\nFound ${data.result.tools.length} tool(s):`);
+                    data.result.tools.forEach((tool, idx) => {
+                        console.log(`\n  Tool ${idx + 1}:`);
+                        console.log(`    Name: ${tool.name}`);
+                        console.log(`    Description: ${tool.description.substring(0, 100)}...`);
+                    });
+                }
+
+                console.log('\n✅ Test completed successfully!');
+                eventSource.close();
+                process.exit(0);
+            }
+        }
+
+        if (data.error) {
+            console.error('\n✗ Error response:', data.error);
+            eventSource.close();
+            process.exit(1);
+        }
+    } catch (e) {
+        console.log('Raw SSE data:', event.data);
+    }
 };
 
 // Timeout after 30 seconds
 setTimeout(() => {
-    console.error('✗ Test timeout after 30 seconds');
+    console.error('\n✗ Test timeout after 30 seconds');
+    console.log('Pending requests:', Array.from(pendingRequests.values()));
     eventSource.close();
     process.exit(1);
 }, 30000);
