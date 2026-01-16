@@ -1,0 +1,368 @@
+openapi: 3.0.0
+info:
+  title: Array Handling API - Wrapped Arrays (TC-P0-API-002 Positive)
+  description: |
+    Test case for TC-P0-API-002: OpenAPI + React-Intrinsic + gpt-oss-120b + Array Handling
+    
+    **Test Purpose**: Validate that wrapped arrays work correctly with react-intrinsic style
+    
+    **Expected Behavior**:
+    - Tool imports successfully
+    - Arrays are properly wrapped in objects with descriptive property names
+    - API receives array data in request body: {"items": [{"name": "..."}, {"name": "..."}]}
+    - API processes array correctly
+    
+    **Test Configuration**:
+    - Agent Style: react-intrinsic
+    - Model: gpt-oss-120b
+    - Priority: P0 (Critical)
+    - Automation: Automated
+    
+    **Deployed on Render.com**
+  version: 1.0.0
+  contact:
+    name: QA Test Support
+    email: qa-support@example.com
+
+servers:
+  - url: https://complex-tools-openapi.onrender.com/api/v1
+    description: Render.com Production Deployment
+
+paths:
+  /inventory/process-items:
+    post:
+      summary: Process inventory items (Wrapped Array)
+      description: |
+        Process a list of inventory items with wrapped array structure.
+        This endpoint demonstrates the CORRECT way to handle arrays in OpenAPI specs
+        for react-intrinsic style compatibility.
+        
+        **Array Structure**: Items are wrapped in an object property called "items"
+        **Expected Request**: {"items": [{"name": "Item1", "quantity": 10}, ...]}
+      operationId: processInventoryItems
+      tags:
+        - Inventory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryRequest'
+            examples:
+              multipleItems:
+                summary: Multiple inventory items
+                value:
+                  items:
+                    - name: Laptop
+                      sku: LAP-001
+                      quantity: 5
+                      price: 999.99
+                      category: Electronics
+                      specifications:
+                        brand: TechCorp
+                        model: Pro-X1
+                        warranty: 2 years
+                    - name: Mouse
+                      sku: MOU-002
+                      quantity: 20
+                      price: 29.99
+                      category: Accessories
+                      specifications:
+                        brand: TechCorp
+                        model: Wireless-M2
+                        warranty: 1 year
+                    - name: Keyboard
+                      sku: KEY-003
+                      quantity: 15
+                      price: 79.99
+                      category: Accessories
+                      specifications:
+                        brand: TechCorp
+                        model: Mechanical-K3
+                        warranty: 1 year
+              singleItem:
+                summary: Single inventory item
+                value:
+                  items:
+                    - name: Monitor
+                      sku: MON-004
+                      quantity: 3
+                      price: 299.99
+                      category: Electronics
+                      specifications:
+                        brand: ViewTech
+                        model: UHD-27
+                        warranty: 3 years
+      responses:
+        '200':
+          description: Items processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryResponse'
+              examples:
+                success:
+                  value:
+                    status: success
+                    message: Successfully processed 3 inventory items
+                    processed_items:
+                      - name: Laptop
+                        sku: LAP-001
+                        status: added
+                        inventory_id: INV-2024-001
+                      - name: Mouse
+                        sku: MOU-002
+                        status: added
+                        inventory_id: INV-2024-002
+                      - name: Keyboard
+                        sku: KEY-003
+                        status: added
+                        inventory_id: INV-2024-003
+                    total_value: 1109.97
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /orders/process-batch:
+    post:
+      summary: Process batch orders (Wrapped Array)
+      description: |
+        Process multiple orders in a batch with wrapped array structure.
+        Demonstrates nested arrays within wrapped structure.
+        
+        **Array Structure**: Orders wrapped in "orders" property, each order contains wrapped "items" array
+      operationId: processBatchOrders
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchOrderRequest'
+            examples:
+              multipleBatchOrders:
+                summary: Multiple orders with items
+                value:
+                  orders:
+                    - order_id: ORD-001
+                      customer_name: John Doe
+                      items:
+                        - product_name: Laptop
+                          quantity: 1
+                          unit_price: 999.99
+                        - product_name: Mouse
+                          quantity: 2
+                          unit_price: 29.99
+                    - order_id: ORD-002
+                      customer_name: Jane Smith
+                      items:
+                        - product_name: Monitor
+                          quantity: 1
+                          unit_price: 299.99
+      responses:
+        '200':
+          description: Batch orders processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchOrderResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    InventoryRequest:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          description: List of inventory items to process (WRAPPED ARRAY - CORRECT)
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/InventoryItem'
+      example:
+        items:
+          - name: Laptop
+            sku: LAP-001
+            quantity: 5
+            price: 999.99
+            category: Electronics
+
+    InventoryItem:
+      type: object
+      required:
+        - name
+        - sku
+        - quantity
+        - price
+      properties:
+        name:
+          type: string
+          description: Item name
+          minLength: 1
+          maxLength: 200
+        sku:
+          type: string
+          description: Stock Keeping Unit
+          pattern: '^[A-Z]{3}-[0-9]{3}$'
+        quantity:
+          type: integer
+          description: Quantity in stock
+          minimum: 0
+          maximum: 10000
+        price:
+          type: number
+          description: Unit price
+          minimum: 0
+          exclusiveMinimum: true
+        category:
+          type: string
+          description: Item category
+          enum:
+            - Electronics
+            - Accessories
+            - Furniture
+            - Office Supplies
+        specifications:
+          type: object
+          description: Nested specifications object
+          properties:
+            brand:
+              type: string
+              description: Brand name
+            model:
+              type: string
+              description: Model number
+            warranty:
+              type: string
+              description: Warranty period
+
+    InventoryResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - success
+            - partial_success
+            - failed
+        message:
+          type: string
+        processed_items:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              sku:
+                type: string
+              status:
+                type: string
+                enum:
+                  - added
+                  - updated
+                  - failed
+              inventory_id:
+                type: string
+        total_value:
+          type: number
+
+    BatchOrderRequest:
+      type: object
+      required:
+        - orders
+      properties:
+        orders:
+          type: array
+          description: List of orders to process (WRAPPED ARRAY - CORRECT)
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Order'
+
+    Order:
+      type: object
+      required:
+        - order_id
+        - customer_name
+        - items
+      properties:
+        order_id:
+          type: string
+          description: Unique order identifier
+        customer_name:
+          type: string
+          description: Customer name
+        items:
+          type: array
+          description: Order items (NESTED WRAPPED ARRAY - CORRECT)
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/OrderItem'
+
+    OrderItem:
+      type: object
+      required:
+        - product_name
+        - quantity
+        - unit_price
+      properties:
+        product_name:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+        unit_price:
+          type: number
+          minimum: 0
+
+    BatchOrderResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        processed_orders:
+          type: array
+          items:
+            type: object
+            properties:
+              order_id:
+                type: string
+              status:
+                type: string
+              total_amount:
+                type: number
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        details:
+          type: object
+          description: Additional error details
+
+# Made with Bob

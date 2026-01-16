@@ -1,0 +1,182 @@
+{
+    "wrapped_inventory_single": {
+        "tool": "process_inventory_items_wrapped",
+        "description": "Single inventory item with wrapped array",
+        "payload": {
+            "items": [
+                {
+                    "name": "Laptop",
+                    "sku": "LAP-001",
+                    "quantity": 5,
+                    "price": 999.99,
+                    "category": "Electronics",
+                    "specifications": {
+                        "brand": "TechCorp",
+                        "model": "Pro-X1",
+                        "warranty": "2 years"
+                    }
+                }
+            ]
+        }
+    },
+    "wrapped_inventory_multiple": {
+        "tool": "process_inventory_items_wrapped",
+        "description": "Multiple inventory items with wrapped array",
+        "payload": {
+            "items": [
+                {
+                    "name": "Laptop",
+                    "sku": "LAP-001",
+                    "quantity": 5,
+                    "price": 999.99,
+                    "category": "Electronics",
+                    "specifications": {
+                        "brand": "TechCorp",
+                        "model": "Pro-X1",
+                        "warranty": "2 years"
+                    }
+                },
+                {
+                    "name": "Mouse",
+                    "sku": "MOU-002",
+                    "quantity": 20,
+                    "price": 29.99,
+                    "category": "Accessories",
+                    "specifications": {
+                        "brand": "TechCorp",
+                        "model": "Wireless-M2",
+                        "warranty": "1 year"
+                    }
+                },
+                {
+                    "name": "Keyboard",
+                    "sku": "KEY-003",
+                    "quantity": 15,
+                    "price": 79.99,
+                    "category": "Accessories",
+                    "specifications": {
+                        "brand": "TechCorp",
+                        "model": "Mechanical-K3",
+                        "warranty": "1 year"
+                    }
+                }
+            ]
+        }
+    },
+    "raw_inventory_single": {
+        "tool": "process_inventory_items_raw",
+        "description": "Single inventory item with raw array",
+        "payload": [
+            {
+                "name": "Monitor",
+                "sku": "MON-004",
+                "quantity": 3,
+                "price": 299.99,
+                "category": "Electronics",
+                "specifications": {
+                    "brand": "ViewTech",
+                    "model": "UHD-27",
+                    "warranty": "3 years"
+                }
+            }
+        ]
+    },
+    "raw_inventory_multiple": {
+        "tool": "process_inventory_items_raw",
+        "description": "Multiple inventory items with raw array",
+        "payload": [
+            {
+                "name": "Laptop",
+                "sku": "LAP-001",
+                "quantity": 5,
+                "price": 999.99,
+                "category": "Electronics",
+                "specifications": {
+                    "brand": "TechCorp",
+                    "model": "Pro-X1",
+                    "warranty": "2 years"
+                }
+            },
+            {
+                "name": "Mouse",
+                "sku": "MOU-002",
+                "quantity": 20,
+                "price": 29.99,
+                "category": "Accessories",
+                "specifications": {
+                    "brand": "TechCorp",
+                    "model": "Wireless-M2",
+                    "warranty": "1 year"
+                }
+            }
+        ]
+    },
+    "wrapped_batch_orders": {
+        "tool": "process_batch_orders_wrapped",
+        "description": "Batch orders with wrapped array and nested items",
+        "payload": {
+            "orders": [
+                {
+                    "order_id": "ORD-001",
+                    "customer_name": "John Doe",
+                    "items": [
+                        {
+                            "product_name": "Laptop",
+                            "quantity": 1,
+                            "unit_price": 999.99
+                        },
+                        {
+                            "product_name": "Mouse",
+                            "quantity": 2,
+                            "unit_price": 29.99
+                        }
+                    ]
+                },
+                {
+                    "order_id": "ORD-002",
+                    "customer_name": "Jane Smith",
+                    "items": [
+                        {
+                            "product_name": "Monitor",
+                            "quantity": 1,
+                            "unit_price": 299.99
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    "raw_batch_orders": {
+        "tool": "process_batch_orders_raw",
+        "description": "Batch orders with raw array and nested items",
+        "payload": [
+            {
+                "order_id": "ORD-003",
+                "customer_name": "Bob Wilson",
+                "items": [
+                    {
+                        "product_name": "Keyboard",
+                        "quantity": 1,
+                        "unit_price": 79.99
+                    },
+                    {
+                        "product_name": "Mouse",
+                        "quantity": 1,
+                        "unit_price": 29.99
+                    }
+                ]
+            },
+            {
+                "order_id": "ORD-004",
+                "customer_name": "Alice Brown",
+                "items": [
+                    {
+                        "product_name": "Laptop",
+                        "quantity": 2,
+                        "unit_price": 999.99
+                    }
+                ]
+            }
+        ]
+    }
+}
