@@ -344,8 +344,8 @@ app.get('/', (req: Request, res: Response) => {
     });
 });
 
-// Store active transports by connection
-const activeTransports = new Map<string, SSEServerTransport>();
+// Store active servers and transports by session ID
+const activeSessions = new Map<string, { server: Server; transport: SSEServerTransport }>();
 
 // SSE endpoint for MCP
 app.get('/sse', async (req: Request, res: Response) => {
@@ -361,6 +361,7 @@ app.get('/sse', async (req: Request, res: Response) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
+    res.setHeader('X-Session-ID', sessionId);
 
     // Create a new MCP server instance for this connection
     const server = new Server(
@@ -468,12 +469,12 @@ app.get('/sse', async (req: Request, res: Response) => {
 
     // Create SSE transport with standard /message endpoint
     const transport = new SSEServerTransport('/message', res);
-    activeTransports.set(sessionId, transport);
+    activeSessions.set(sessionId, { server, transport });
 
     // Clean up on connection close
     req.on('close', () => {
         console.log(`SSE connection closed: ${sessionId}`);
-        activeTransports.delete(sessionId);
+        activeSessions.delete(sessionId);
     });
 
     try {
@@ -481,7 +482,7 @@ app.get('/sse', async (req: Request, res: Response) => {
         console.log(`MCP server connected via SSE: ${sessionId}`);
     } catch (error) {
         console.error('Error connecting MCP server:', error);
-        activeTransports.delete(sessionId);
+        activeSessions.delete(sessionId);
         if (!res.headersSent) {
             res.status(500).json({ error: 'Failed to establish SSE connection' });
         }
@@ -492,20 +493,26 @@ app.get('/sse', async (req: Request, res: Response) => {
 app.post('/message', async (req: Request, res: Response) => {
     console.log('Received POST to /message');
     console.log('Request body:', JSON.stringify(req.body, null, 2));
-    console.log(`Active transports: ${activeTransports.size}`);
+    console.log(`Active sessions: ${activeSessions.size}`);
 
-    // Get the most recent transport (last one added)
-    const transports = Array.from(activeTransports.values());
-    const transport = transports[transports.length - 1];
+    // Try to get session ID from header or use the most recent session
+    const sessionId = req.headers['x-session-id'] as string;
+    let session = sessionId ? activeSessions.get(sessionId) : undefined;
 
-    if (!transport) {
-        console.error('No active transport found');
+    if (!session) {
+        // Fall back to most recent session
+        const sessions = Array.from(activeSessions.values());
+        session = sessions[sessions.length - 1];
+    }
+
+    if (!session) {
+        console.error('No active session found');
         return res.status(404).json({ error: 'No active SSE connection' });
     }
 
     try {
         console.log('Calling transport.handlePostMessage...');
-        await transport.handlePostMessage(req, res);
+        await session.transport.handlePostMessage(req, res);
         console.log('Message handled successfully');
     } catch (error) {
         console.error('Error handling message:', error);
