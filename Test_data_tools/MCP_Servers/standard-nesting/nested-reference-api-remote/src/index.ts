@@ -225,7 +225,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         try {
             // Make API call to the deployed endpoint
             const response = await axios.post(
-                `${API_BASE_URL}/orders/process-with-references`,
+                `${API_BASE_URL}/orders/process`,
                 args,
                 {
                     headers: {
@@ -372,18 +372,94 @@ app.post('/mcp', async (req: Request, res: Response) => {
                 result: {}
             });
         } else if (request.method === 'tools/call') {
-            const toolRequest = {
-                method: 'tools/call',
-                params: request.params
-            };
+            // Call the tool directly through the handler
+            const { name, arguments: args } = request.params;
 
-            const result = await server.request(toolRequest, CallToolRequestSchema);
+            if (name === "process_customer_order_with_references") {
+                try {
+                    // Make API call to the deployed endpoint
+                    const response = await axios.post(
+                        `${API_BASE_URL}/orders/process`,
+                        args,
+                        {
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            timeout: 30000,
+                        }
+                    );
 
-            res.json({
-                jsonrpc: '2.0',
-                id: request.id,
-                result: result
-            });
+                    res.json({
+                        jsonrpc: '2.0',
+                        id: request.id,
+                        result: {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: JSON.stringify(response.data, null, 2),
+                                },
+                            ],
+                        }
+                    });
+                } catch (error) {
+                    if (axios.isAxiosError(error)) {
+                        const errorResponse = error.response?.data;
+                        res.json({
+                            jsonrpc: '2.0',
+                            id: request.id,
+                            result: {
+                                content: [
+                                    {
+                                        type: "text",
+                                        text: JSON.stringify(
+                                            {
+                                                error: errorResponse?.error || error.message,
+                                                code: errorResponse?.code || "API_ERROR",
+                                                details: errorResponse?.details || error.response?.statusText,
+                                                status: error.response?.status,
+                                            },
+                                            null,
+                                            2
+                                        ),
+                                    },
+                                ],
+                                isError: true,
+                            }
+                        });
+                    } else {
+                        res.json({
+                            jsonrpc: '2.0',
+                            id: request.id,
+                            result: {
+                                content: [
+                                    {
+                                        type: "text",
+                                        text: JSON.stringify(
+                                            {
+                                                error: "Failed to process order",
+                                                code: "UNKNOWN_ERROR",
+                                                details: error instanceof Error ? error.message : String(error),
+                                            },
+                                            null,
+                                            2
+                                        ),
+                                    },
+                                ],
+                                isError: true,
+                            }
+                        });
+                    }
+                }
+            } else {
+                res.status(400).json({
+                    jsonrpc: '2.0',
+                    id: request.id,
+                    error: {
+                        code: -32602,
+                        message: `Unknown tool: ${name}`
+                    }
+                });
+            }
         } else {
             console.log(`Unknown method: ${request.method}`);
             res.status(400).json({
