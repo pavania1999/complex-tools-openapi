@@ -364,6 +364,13 @@ app.post('/mcp', async (req: Request, res: Response) => {
                     tools: TOOLS
                 }
             });
+        } else if (request.method === 'notifications/initialized') {
+            // Handle initialized notification - just acknowledge it
+            console.log('Client initialized notification received');
+            res.status(200).json({
+                jsonrpc: '2.0',
+                result: {}
+            });
         } else if (request.method === 'tools/call') {
             const toolRequest = {
                 method: 'tools/call',
@@ -378,6 +385,7 @@ app.post('/mcp', async (req: Request, res: Response) => {
                 result: result
             });
         } else {
+            console.log(`Unknown method: ${request.method}`);
             res.status(400).json({
                 jsonrpc: '2.0',
                 id: request.id,
