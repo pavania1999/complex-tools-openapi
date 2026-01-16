@@ -349,12 +349,13 @@ const activeSessions = new Map<string, { server: Server; transport: SSEServerTra
 
 // SSE endpoint for MCP
 app.get('/sse', async (req: Request, res: Response) => {
-    console.log('New SSE connection established');
-    console.log('Request headers:', req.headers);
+    console.log('=== New SSE connection request ===');
+    console.log('Client IP:', req.ip);
+    console.log('User-Agent:', req.headers['user-agent']);
 
     // Generate a unique session ID for this connection
     const sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    console.log(`Session ID: ${sessionId}`);
+    console.log(`Generated Session ID: ${sessionId}`);
 
     // Set SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
@@ -362,6 +363,8 @@ app.get('/sse', async (req: Request, res: Response) => {
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
     res.setHeader('X-Session-ID', sessionId);
+
+    console.log('SSE headers set');
 
     // Create a new MCP server instance for this connection
     const server = new Server(
@@ -378,7 +381,8 @@ app.get('/sse', async (req: Request, res: Response) => {
 
     // List available tools
     server.setRequestHandler(ListToolsRequestSchema, async () => {
-        console.log('Handling ListTools request');
+        console.log(`📋 Handling ListTools request for session: ${sessionId}`);
+        console.log(`Returning ${TOOLS.length} tool(s)`);
         return {
             tools: TOOLS,
         };
@@ -386,7 +390,8 @@ app.get('/sse', async (req: Request, res: Response) => {
 
     // Handle tool calls
     server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
-        console.log('Handling CallTool request:', request.params.name);
+        console.log(`🔧 Handling CallTool request for session: ${sessionId}`);
+        console.log(`Tool name: ${request.params.name}`);
         const { name, arguments: args } = request.params;
 
         if (name === "process_customer_order_with_references") {
@@ -469,20 +474,29 @@ app.get('/sse', async (req: Request, res: Response) => {
 
     // Create SSE transport with standard /message endpoint
     const transport = new SSEServerTransport('/message', res);
-    activeSessions.set(sessionId, { server, transport });
 
     // Clean up on connection close
     req.on('close', () => {
-        console.log(`SSE connection closed: ${sessionId}`);
+        console.log(`🔌 SSE connection closed: ${sessionId}`);
         activeSessions.delete(sessionId);
+        console.log(`Active sessions remaining: ${activeSessions.size}`);
     });
 
     try {
+        // Connect server to transport BEFORE storing in activeSessions
+        console.log(`Connecting MCP server to transport for session: ${sessionId}...`);
         await server.connect(transport);
-        console.log(`MCP server connected via SSE: ${sessionId}`);
+        console.log(`✅ MCP server connected via SSE: ${sessionId}`);
+
+        // Only add to active sessions after successful connection
+        activeSessions.set(sessionId, { server, transport });
+        console.log(`✅ Session ${sessionId} added to active sessions (total: ${activeSessions.size})`);
     } catch (error) {
-        console.error('Error connecting MCP server:', error);
-        activeSessions.delete(sessionId);
+        console.error(`❌ Error connecting MCP server for session ${sessionId}:`, error);
+        if (error instanceof Error) {
+            console.error('Error details:', error.message);
+            console.error('Error stack:', error.stack);
+        }
         if (!res.headersSent) {
             res.status(500).json({ error: 'Failed to establish SSE connection' });
         }
@@ -491,36 +505,60 @@ app.get('/sse', async (req: Request, res: Response) => {
 
 // POST endpoint for MCP messages
 app.post('/message', async (req: Request, res: Response) => {
-    console.log('Received POST to /message');
-    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    const requestId = req.body?.id || 'unknown';
+    const method = req.body?.method || 'unknown';
+
+    console.log('=== Received POST to /message ===');
+    console.log(`Request ID: ${requestId}`);
+    console.log(`Method: ${method}`);
     console.log(`Active sessions: ${activeSessions.size}`);
+
+    // List all active session IDs for debugging
+    if (activeSessions.size > 0) {
+        console.log('Active session IDs:', Array.from(activeSessions.keys()));
+    }
 
     // Try to get session ID from header or use the most recent session
     const sessionId = req.headers['x-session-id'] as string;
+    console.log(`Session ID from header: ${sessionId || 'none'}`);
+
     let session = sessionId ? activeSessions.get(sessionId) : undefined;
 
     if (!session) {
+        console.log('Session not found by ID, falling back to most recent session');
         // Fall back to most recent session
         const sessions = Array.from(activeSessions.values());
         session = sessions[sessions.length - 1];
+
+        if (session) {
+            console.log('Using fallback session (most recent)');
+        }
+    } else {
+        console.log(`Found session by ID: ${sessionId}`);
     }
 
     if (!session) {
-        console.error('No active session found');
-        return res.status(404).json({ error: 'No active SSE connection' });
+        console.error('❌ No active session found - SSE connection may not be established');
+        return res.status(404).json({
+            error: 'No active SSE connection',
+            hint: 'Establish SSE connection first via GET /sse'
+        });
     }
 
     try {
-        console.log('Calling transport.handlePostMessage...');
+        console.log(`Routing message to transport (method: ${method})...`);
         await session.transport.handlePostMessage(req, res);
-        console.log('Message handled successfully');
+        console.log(`✅ Message handled successfully (method: ${method}, id: ${requestId})`);
     } catch (error) {
-        console.error('Error handling message:', error);
+        console.error('❌ Error handling message:', error);
         if (error instanceof Error) {
             console.error('Error stack:', error.stack);
         }
         if (!res.headersSent) {
-            res.status(500).json({ error: 'Internal server error' });
+            res.status(500).json({
+                error: 'Internal server error',
+                details: error instanceof Error ? error.message : String(error)
+            });
         }
     }
 });
