@@ -1,5 +1,5 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
     CallToolRequestSchema,
     ListToolsRequestSchema,
@@ -195,7 +195,109 @@ Returns a formatted order confirmation with customer details, itemized products,
     },
 ];
 
-// Create Express app
+// Create MCP Server instance
+const server = new Server(
+    {
+        name: "nested-reference-api-remote",
+        version: "1.0.0",
+    },
+    {
+        capabilities: {
+            tools: {},
+        },
+    }
+);
+
+// List available tools
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+    console.log('Handling ListTools request');
+    return {
+        tools: TOOLS,
+    };
+});
+
+// Handle tool calls
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    console.log('Handling CallTool request:', request.params.name);
+    const { name, arguments: args } = request.params;
+
+    if (name === "process_customer_order_with_references") {
+        try {
+            // Make API call to the deployed endpoint
+            const response = await axios.post(
+                `${API_BASE_URL}/orders/process-with-references`,
+                args,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    timeout: 30000, // 30 second timeout
+                }
+            );
+
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: JSON.stringify(response.data, null, 2),
+                    },
+                ],
+            };
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                const errorResponse = error.response?.data;
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: JSON.stringify(
+                                {
+                                    error: errorResponse?.error || error.message,
+                                    code: errorResponse?.code || "API_ERROR",
+                                    details: errorResponse?.details || error.response?.statusText,
+                                    status: error.response?.status,
+                                },
+                                null,
+                                2
+                            ),
+                        },
+                    ],
+                    isError: true,
+                };
+            }
+
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: JSON.stringify(
+                            {
+                                error: "Failed to process order",
+                                code: "UNKNOWN_ERROR",
+                                details: error instanceof Error ? error.message : String(error),
+                            },
+                            null,
+                            2
+                        ),
+                    },
+                ],
+                isError: true,
+            };
+        }
+    }
+
+    return {
+        content: [
+            {
+                type: "text",
+                text: `Unknown tool: ${name}`,
+            },
+        ],
+        isError: true,
+    };
+});
+
+// Create Express app for HTTP transport
 const app = express();
 
 // Middleware
@@ -212,7 +314,8 @@ app.get('/health', (req: Request, res: Response) => {
     res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
-        service: 'nested-reference-api-remote'
+        service: 'nested-reference-api-remote',
+        transport: 'HTTP'
     });
 });
 
@@ -221,184 +324,80 @@ app.get('/', (req: Request, res: Response) => {
     res.json({
         message: 'Customer Order API with Nested References - Remote MCP Server',
         version: '1.0.0',
-        transport: 'SSE',
+        transport: 'HTTP',
         endpoints: {
             health: '/health',
-            sse: '/sse'
+            mcp: '/mcp'
         },
         documentation: 'Based on GitHub Issue #45755 - Nested Schema Reference Pattern'
     });
 });
 
-// Store active transports by connection
-const activeTransports = new Map<string, SSEServerTransport>();
+// MCP endpoint - handles all MCP protocol messages via HTTP POST
+app.post('/mcp', async (req: Request, res: Response) => {
+    console.log('Received MCP request:', req.body.method);
 
-// SSE endpoint for MCP
-app.get('/sse', async (req: Request, res: Response) => {
-    console.log('New SSE connection established');
-    console.log('Request headers:', req.headers);
+    try {
+        // Handle the JSON-RPC request
+        const request = req.body;
 
-    // Generate a unique session ID for this connection
-    const sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    console.log(`Session ID: ${sessionId}`);
-
-    // Set SSE headers
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');
-
-    // Create a new MCP server instance for this connection
-    const server = new Server(
-        {
-            name: "nested-reference-api-remote",
-            version: "1.0.0",
-        },
-        {
-            capabilities: {
-                tools: {},
-            },
-        }
-    );
-
-    // List available tools
-    server.setRequestHandler(ListToolsRequestSchema, async () => {
-        console.log('Handling ListTools request');
-        return {
-            tools: TOOLS,
-        };
-    });
-
-    // Handle tool calls
-    server.setRequestHandler(CallToolRequestSchema, async (request) => {
-        console.log('Handling CallTool request:', request.params.name);
-        const { name, arguments: args } = request.params;
-
-        if (name === "process_customer_order_with_references") {
-            try {
-                // Make API call to the deployed endpoint
-                const response = await axios.post(
-                    `${API_BASE_URL}/orders/process-with-references`,
-                    args,
-                    {
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        timeout: 30000, // 30 second timeout
+        if (request.method === 'initialize') {
+            res.json({
+                jsonrpc: '2.0',
+                id: request.id,
+                result: {
+                    protocolVersion: '2024-11-05',
+                    capabilities: {
+                        tools: {}
+                    },
+                    serverInfo: {
+                        name: 'nested-reference-api-remote',
+                        version: '1.0.0'
                     }
-                );
-
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: JSON.stringify(response.data, null, 2),
-                        },
-                    ],
-                };
-            } catch (error) {
-                if (axios.isAxiosError(error)) {
-                    const errorResponse = error.response?.data;
-                    return {
-                        content: [
-                            {
-                                type: "text",
-                                text: JSON.stringify(
-                                    {
-                                        error: errorResponse?.error || error.message,
-                                        code: errorResponse?.code || "API_ERROR",
-                                        details: errorResponse?.details || error.response?.statusText,
-                                        status: error.response?.status,
-                                    },
-                                    null,
-                                    2
-                                ),
-                            },
-                        ],
-                        isError: true,
-                    };
                 }
+            });
+        } else if (request.method === 'tools/list') {
+            res.json({
+                jsonrpc: '2.0',
+                id: request.id,
+                result: {
+                    tools: TOOLS
+                }
+            });
+        } else if (request.method === 'tools/call') {
+            const toolRequest = {
+                method: 'tools/call',
+                params: request.params
+            };
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: JSON.stringify(
-                                {
-                                    error: "Failed to process order",
-                                    code: "UNKNOWN_ERROR",
-                                    details: error instanceof Error ? error.message : String(error),
-                                },
-                                null,
-                                2
-                            ),
-                        },
-                    ],
-                    isError: true,
-                };
+            const result = await server.request(toolRequest, CallToolRequestSchema);
+
+            res.json({
+                jsonrpc: '2.0',
+                id: request.id,
+                result: result
+            });
+        } else {
+            res.status(400).json({
+                jsonrpc: '2.0',
+                id: request.id,
+                error: {
+                    code: -32601,
+                    message: `Method not found: ${request.method}`
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error handling MCP request:', error);
+        res.status(500).json({
+            jsonrpc: '2.0',
+            id: req.body.id,
+            error: {
+                code: -32603,
+                message: 'Internal error',
+                data: error instanceof Error ? error.message : String(error)
             }
-        }
-
-        return {
-            content: [
-                {
-                    type: "text",
-                    text: `Unknown tool: ${name}`,
-                },
-            ],
-            isError: true,
-        };
-    });
-
-    // Create SSE transport with standard /message endpoint
-    const transport = new SSEServerTransport('/message', res);
-    activeTransports.set(sessionId, transport);
-
-    // Clean up on connection close
-    req.on('close', () => {
-        console.log(`SSE connection closed: ${sessionId}`);
-        activeTransports.delete(sessionId);
-    });
-
-    try {
-        await server.connect(transport);
-        console.log(`MCP server connected via SSE: ${sessionId}`);
-    } catch (error) {
-        console.error('Error connecting MCP server:', error);
-        activeTransports.delete(sessionId);
-        if (!res.headersSent) {
-            res.status(500).json({ error: 'Failed to establish SSE connection' });
-        }
-    }
-});
-
-// POST endpoint for MCP messages
-app.post('/message', async (req: Request, res: Response) => {
-    console.log('Received POST to /message');
-    console.log('Request body:', JSON.stringify(req.body, null, 2));
-    console.log(`Active transports: ${activeTransports.size}`);
-
-    // Get the most recent transport (last one added)
-    const transports = Array.from(activeTransports.values());
-    const transport = transports[transports.length - 1];
-
-    if (!transport) {
-        console.error('No active transport found');
-        return res.status(404).json({ error: 'No active SSE connection' });
-    }
-
-    try {
-        console.log('Calling transport.handlePostMessage...');
-        await transport.handlePostMessage(req, res);
-        console.log('Message handled successfully');
-    } catch (error) {
-        console.error('Error handling message:', error);
-        if (error instanceof Error) {
-            console.error('Error stack:', error.stack);
-        }
-        if (!res.headersSent) {
-            res.status(500).json({ error: 'Internal server error' });
-        }
+        });
     }
 });
 
@@ -406,8 +405,8 @@ app.post('/message', async (req: Request, res: Response) => {
 app.listen(PORT, () => {
     console.log(`Nested Reference API Remote MCP Server running on port ${PORT}`);
     console.log(`Health check: http://localhost:${PORT}/health`);
-    console.log(`SSE endpoint: http://localhost:${PORT}/sse`);
-    console.log(`Transport: Server-Sent Events (SSE)`);
+    console.log(`MCP endpoint: http://localhost:${PORT}/mcp`);
+    console.log(`Transport: HTTP (JSON-RPC over HTTP POST)`);
 });
 
 // Made with Bob

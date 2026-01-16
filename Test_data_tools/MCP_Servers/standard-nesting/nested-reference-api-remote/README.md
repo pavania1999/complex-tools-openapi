@@ -156,7 +156,7 @@ Process customer orders with nested address references.
 ### After Deployment
 
 Your MCP server will be available at:
-- **SSE Endpoint**: `https://nested-reference-api-remote.onrender.com/sse`
+- **MCP Endpoint**: `https://nested-reference-api-remote.onrender.com/mcp`
 - **Health Check**: `https://nested-reference-api-remote.onrender.com/health`
 - **Root**: `https://nested-reference-api-remote.onrender.com/`
 
@@ -197,8 +197,8 @@ Add to your MCP client settings:
 {
   "mcpServers": {
     "nested-reference-api": {
-      "url": "https://nested-reference-api-remote.onrender.com/sse",
-      "transport": "sse"
+      "url": "https://nested-reference-api-remote.onrender.com/mcp",
+      "transport": "http"
     }
   }
 }
@@ -206,7 +206,7 @@ Add to your MCP client settings:
 
 ## Architecture
 
-- **Transport**: Server-Sent Events (SSE)
+- **Transport**: HTTP (JSON-RPC over HTTP POST)
 - **Backend API**: `https://complex-tools-openapi.onrender.com/api/v1`
 - **Framework**: Express.js with MCP SDK
 - **Language**: TypeScript
