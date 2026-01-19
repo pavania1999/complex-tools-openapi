@@ -13,14 +13,14 @@ import axios from "axios";
 const API_BASE_URL = "https://complex-tools-openapi.onrender.com/api/v1";
 const PORT = process.env.PORT || 3456;
 
-// Tool definitions matching the OpenAPI spec exactly
+// Tool definitions with wrapped arrays for TypeScript compatibility
 const TOOLS: Tool[] = [
     {
         name: "process_inventory_items_raw",
-        description: `Process inventory items with raw array structure at request body level (TC-P0-API-002).
+        description: `Process inventory items with array structure (TC-P0-API-002).
 
-This tool demonstrates raw array handling which is valid per OpenAPI 3.0 spec.
-The request body is directly an array type: [{"name": "Item1", "quantity": 10}, ...]
+This tool demonstrates array handling for inventory processing.
+The request contains an array of inventory items.
 
 Each inventory item includes:
 - Basic information (name, SKU, quantity, price)
@@ -29,57 +29,63 @@ Each inventory item includes:
 
 Returns a response with processing status, processed items details, and total value.`,
         inputSchema: {
-            type: "array",
-            description: "Array of inventory items (raw array structure)",
-            minItems: 1,
-            maxItems: 100,
-            items: {
-                type: "object",
-                required: ["name", "sku", "quantity", "price"],
-                properties: {
-                    name: {
-                        type: "string",
-                        description: "Item name",
-                        minLength: 1,
-                        maxLength: 200,
-                    },
-                    sku: {
-                        type: "string",
-                        description: "Stock Keeping Unit",
-                        pattern: "^[A-Z]{3}-[0-9]{3}$",
-                    },
-                    quantity: {
-                        type: "integer",
-                        description: "Quantity in stock",
-                        minimum: 0,
-                        maximum: 10000,
-                    },
-                    price: {
-                        type: "number",
-                        description: "Unit price",
-                        minimum: 0,
-                        exclusiveMinimum: true,
-                    },
-                    category: {
-                        type: "string",
-                        description: "Item category",
-                        enum: ["Electronics", "Accessories", "Furniture", "Office Supplies"],
-                    },
-                    specifications: {
+            type: "object",
+            required: ["items"],
+            properties: {
+                items: {
+                    type: "array",
+                    description: "Array of inventory items",
+                    minItems: 1,
+                    maxItems: 100,
+                    items: {
                         type: "object",
-                        description: "Nested specifications object",
+                        required: ["name", "sku", "quantity", "price"],
                         properties: {
-                            brand: {
+                            name: {
                                 type: "string",
-                                description: "Brand name",
+                                description: "Item name",
+                                minLength: 1,
+                                maxLength: 200,
                             },
-                            model: {
+                            sku: {
                                 type: "string",
-                                description: "Model number",
+                                description: "Stock Keeping Unit",
+                                pattern: "^[A-Z]{3}-[0-9]{3}$",
                             },
-                            warranty: {
+                            quantity: {
+                                type: "integer",
+                                description: "Quantity in stock",
+                                minimum: 0,
+                                maximum: 10000,
+                            },
+                            price: {
+                                type: "number",
+                                description: "Unit price",
+                                minimum: 0,
+                                exclusiveMinimum: true,
+                            },
+                            category: {
                                 type: "string",
-                                description: "Warranty period",
+                                description: "Item category",
+                                enum: ["Electronics", "Accessories", "Furniture", "Office Supplies"],
+                            },
+                            specifications: {
+                                type: "object",
+                                description: "Nested specifications object",
+                                properties: {
+                                    brand: {
+                                        type: "string",
+                                        description: "Brand name",
+                                    },
+                                    model: {
+                                        type: "string",
+                                        description: "Model number",
+                                    },
+                                    warranty: {
+                                        type: "string",
+                                        description: "Warranty period",
+                                    },
+                                },
                             },
                         },
                     },
@@ -89,12 +95,10 @@ Returns a response with processing status, processed items details, and total va
     },
     {
         name: "process_batch_orders_raw",
-        description: `Process multiple orders in a batch with raw array structure (TC-P0-API-002).
+        description: `Process multiple orders in a batch with array structure (TC-P0-API-002).
 
-This tool demonstrates raw array handling where the request body is a raw array of orders.
+This tool demonstrates array handling for batch order processing.
 Each order contains nested items array.
-
-Structure: [{"order_id": "ORD-001", "customer_name": "John Doe", "items": [...]}, ...]
 
 Each order includes:
 - Order ID and customer name
@@ -102,39 +106,45 @@ Each order includes:
 
 Returns a response with batch processing status and details for each processed order.`,
         inputSchema: {
-            type: "array",
-            description: "Array of orders (raw array structure)",
-            minItems: 1,
-            items: {
-                type: "object",
-                required: ["order_id", "customer_name", "items"],
-                properties: {
-                    order_id: {
-                        type: "string",
-                        description: "Unique order identifier",
-                    },
-                    customer_name: {
-                        type: "string",
-                        description: "Customer name",
-                    },
+            type: "object",
+            required: ["orders"],
+            properties: {
+                orders: {
+                    type: "array",
+                    description: "Array of orders",
+                    minItems: 1,
                     items: {
-                        type: "array",
-                        description: "Order items (nested array)",
-                        minItems: 1,
-                        items: {
-                            type: "object",
-                            required: ["product_name", "quantity", "unit_price"],
-                            properties: {
-                                product_name: {
-                                    type: "string",
-                                },
-                                quantity: {
-                                    type: "integer",
-                                    minimum: 1,
-                                },
-                                unit_price: {
-                                    type: "number",
-                                    minimum: 0,
+                        type: "object",
+                        required: ["order_id", "customer_name", "items"],
+                        properties: {
+                            order_id: {
+                                type: "string",
+                                description: "Unique order identifier",
+                            },
+                            customer_name: {
+                                type: "string",
+                                description: "Customer name",
+                            },
+                            items: {
+                                type: "array",
+                                description: "Order items (nested array)",
+                                minItems: 1,
+                                items: {
+                                    type: "object",
+                                    required: ["product_name", "quantity", "unit_price"],
+                                    properties: {
+                                        product_name: {
+                                            type: "string",
+                                        },
+                                        quantity: {
+                                            type: "integer",
+                                            minimum: 1,
+                                        },
+                                        unit_price: {
+                                            type: "number",
+                                            minimum: 0,
+                                        },
+                                    },
                                 },
                             },
                         },
@@ -173,10 +183,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     if (name === "process_inventory_items_raw") {
         try {
-            // Make API call to the deployed endpoint
+            // Extract items array from wrapped object and send as raw array to API
+            const items = (args as any).items;
             const response = await axios.post(
                 `${API_BASE_URL}/inventory/process-items-raw`,
-                args,
+                items,
                 {
                     headers: {
                         "Content-Type": "application/json",
@@ -238,10 +249,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     if (name === "process_batch_orders_raw") {
         try {
-            // Make API call to the deployed endpoint
+            // Extract orders array from wrapped object and send as raw array to API
+            const orders = (args as any).orders;
             const response = await axios.post(
                 `${API_BASE_URL}/orders/process-batch-raw`,
-                args,
+                orders,
                 {
                     headers: {
                         "Content-Type": "application/json",
@@ -392,9 +404,11 @@ app.post('/mcp', async (req: Request, res: Response) => {
 
             if (name === "process_inventory_items_raw") {
                 try {
+                    // Extract items array from wrapped object and send as raw array to API
+                    const items = (args as any).items;
                     const response = await axios.post(
                         `${API_BASE_URL}/inventory/process-items-raw`,
-                        args,
+                        items,
                         {
                             headers: {
                                 "Content-Type": "application/json",
@@ -466,9 +480,11 @@ app.post('/mcp', async (req: Request, res: Response) => {
                 }
             } else if (name === "process_batch_orders_raw") {
                 try {
+                    // Extract orders array from wrapped object and send as raw array to API
+                    const orders = (args as any).orders;
                     const response = await axios.post(
                         `${API_BASE_URL}/orders/process-batch-raw`,
-                        args,
+                        orders,
                         {
                             headers: {
                                 "Content-Type": "application/json",
