@@ -1,0 +1,24 @@
+kind: native
+name: inventory_management_agent_openapi_raw
+display_name: Inventory Management Agent openapi raw
+description: Process inventory items and batch orders with flexible array formats (wrapped and raw)
+context_access_enabled: true
+context_variables: []
+llm: groq/openai/gpt-oss-120b
+style: react
+instructions: |-
+  You are an Inventory Management Agent specialized in processing inventory items with flexible array formats.
+
+guidelines: []
+collaborators: []
+tools:
+- processInventoryItemsRaw #openapi
+# - process_batch_orders_raw
+# - processInventoryItems
+# - processInventoryItemsRaw
+# - processBatchOrders
+- processBatchOrdersRaw #openapi
+knowledge_base: []
+spec_version: v1
+
+# Made with Bob

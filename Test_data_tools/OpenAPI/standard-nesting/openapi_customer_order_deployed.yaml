@@ -19,12 +19,12 @@ servers:
 paths:
   /orders/process:
     post:
-      summary: Process customer order def
+      summary: Process customer order
       description: |
         Process a customer order with complete nested information including customer details,
         shipping/billing addresses, and product specifications. Returns a formatted order
         confirmation with all details.
-      operationId: processCustomerOrderDef
+      operationId: processCustomerOrder
       tags:
         - Orders
       requestBody:
@@ -32,7 +32,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/$defs/OrderRequest'
+              $ref: '#/components/schemas/OrderRequest'
             examples:
               basicOrder:
                 summary: Basic order with single item
@@ -82,7 +82,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/$defs/OrderResponse'
+                $ref: '#/components/schemas/OrderResponse'
               examples:
                 successfulOrder:
                   summary: Successful order confirmation
@@ -113,15 +113,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/$defs/ErrorResponse'
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/$defs/ErrorResponse'
+                $ref: '#/components/schemas/ErrorResponse'
 
-$defs:
+components:
+  schemas:
     # Main Request Schema
     OrderRequest:
       type: object
@@ -130,9 +131,9 @@ $defs:
         - order
       properties:
         customer:
-          $ref: '#/$defs/Customer'
+          $ref: '#/components/schemas/Customer'
         order:
-          $ref: '#/$defs/Order'
+          $ref: '#/components/schemas/Order'
 
     # Customer Schema (Basic Nesting - 3 levels)
     Customer:
@@ -150,9 +151,9 @@ $defs:
           description: Customer email address
           example: jane.smith@email.com
         address:
-          $ref: '#/$defs/Address'
+          $ref: '#/components/schemas/Address'
         contact:
-          $ref: '#/$defs/Contact'
+          $ref: '#/components/schemas/Contact'
 
     # Address Schema (Reusable via $ref)
     Address:
@@ -211,11 +212,11 @@ $defs:
           type: array
           description: List of order items
           items:
-            $ref: '#/$defs/OrderItem'
+            $ref: '#/components/schemas/OrderItem'
         shipping_address:
-          $ref: '#/$defs/Address'
+          $ref: '#/components/schemas/Address'
         billing_address:
-          $ref: '#/$defs/Address'
+          $ref: '#/components/schemas/Address'
 
     # Order Item Schema (Level 3)
     OrderItem:
@@ -226,7 +227,7 @@ $defs:
         - price
       properties:
         product:
-          $ref: '#/$defs/Product'
+          $ref: '#/components/schemas/Product'
         quantity:
           type: integer
           minimum: 1
@@ -254,7 +255,7 @@ $defs:
           description: Product name
           example: Premium Laptop
         details:
-          $ref: '#/$defs/ProductDetails'
+          $ref: '#/components/schemas/ProductDetails'
 
     # Product Details Schema (Level 5)
     ProductDetails:
@@ -265,7 +266,7 @@ $defs:
           description: Product description
           example: High-performance laptop for professionals
         specifications:
-          $ref: '#/$defs/ProductSpecifications'
+          $ref: '#/components/schemas/ProductSpecifications'
 
     # Product Specifications Schema (Level 6 - deepest nesting)
     ProductSpecifications:
@@ -320,7 +321,7 @@ $defs:
           type: array
           description: Processed order items
           items:
-            $ref: '#/$defs/ProcessedItem'
+            $ref: '#/components/schemas/ProcessedItem'
         total_items:
           type: integer
           description: Total number of items

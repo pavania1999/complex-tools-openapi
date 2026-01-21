@@ -1,0 +1,92 @@
+kind: native
+name: inventory_management_agent
+display_name: Inventory Management Agent
+description: Process inventory items and batch orders with flexible array formats (wrapped and raw)
+context_access_enabled: true
+context_variables: []
+llm: virtual-model/groq/openai/gpt-oss-120b
+style: react-intrinsic
+instructions: |-
+  You are an Inventory Management Agent specialized in processing inventory items with flexible array formats.
+
+  CAPABILITIES:
+  - Process single or multiple inventory items
+  - Handle wrapped array format: {"items": [...]}
+  - Handle raw array format: [{...}, {...}]
+  - Process batch orders with nested item arrays
+  - Calculate totals and provide summaries
+  - Support multiple categories and specifications
+
+  WHEN TO USE:
+  - User wants to add items to inventory
+  - User mentions processing multiple items
+  - User specifies batch orders
+  - User requests inventory updates
+  - User asks to process orders with items
+
+  DATA STRUCTURE:
+  - Item: name, sku (pattern: XXX-###), quantity, price, category, specifications
+  - Specifications: brand, model, warranty
+  - Order: order_id, customer_name, items array
+  - Categories: Electronics, Accessories, Furniture, Office Supplies
+
+  RESPONSE FORMAT:
+  - Confirm items processed with inventory IDs
+  - Show detailed item information (name, SKU, quantity, price, category)
+  - Display specifications if provided
+  - Calculate and show item values
+  - Provide total value across all items
+  - Show category breakdown
+  - Summarize batch operations with order totals
+
+  ERROR HANDLING:
+  - If SKU format is invalid, explain the correct pattern
+  - If required fields are missing, list what's needed
+  - If validation fails, provide clear error message
+  - Suggest corrections for invalid data
+
+  CALCULATION RULES:
+  - Item Value = Quantity × Price
+  - Total Value = Sum of all item values
+  - Order Total = Sum of all items in order
+  - Average Order Value = Total Revenue ÷ Number of Orders
+
+guidelines: []
+collaborators: []
+tools:
+- process_inventory_items_raw #openapi
+# - process_batch_orders_raw
+# - processInventoryItems
+# - processInventoryItemsRaw
+# - processBatchOrders
+- processBatchOrdersRaw. #openapi
+knowledge_base: []
+chat_with_docs:
+  enabled: false
+  vector_index:
+    chunk_size: 400
+    chunk_overlap: 50
+    limit: 10
+  generation:
+    prompt_instruction: ''
+    max_docs_passed_to_llm: 5
+    generated_response_length: Moderate
+    display_text_no_results_found: I searched my knowledge base, but did not find anything related to your query
+    display_text_connectivity_issue: I might have information related to your query to share, but am unable to connect to my knowledge base at the moment
+    idk_message: I'm afraid I don't understand. Please rephrase your question.
+    enabled: true
+  query_rewrite:
+    enabled: true
+  confidence_thresholds:
+    retrieval_confidence_threshold: Lowest
+    response_confidence_threshold: Lowest
+  citations:
+    citation_title: How do we know?
+    citations_shown: -1
+  hap_filtering:
+    output:
+      enabled: false
+      threshold: 0.5
+spec_version: v1
+
+# Made with Bob

@@ -73,83 +73,83 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /customer/profile:
-    post:
-      summary: Create customer profile with nested enums
-      description: |
-        Tests enum validation within nested structures.
-        Returns formatted customer profile with all nested data.
-      operationId: createCustomerProfile
-      tags:
-        - Customer Management
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CustomerProfileRequest'
-            examples:
-              validIndividualUS:
-                summary: Valid individual customer in US
-                value:
-                  customer_id: "CUST-001"
-                  customer:
-                    name: "John Doe"
-                    email: "john.doe@example.com"
-                    type: "individual"
-                    address:
-                      street: "123 Main St"
-                      city: "New York"
-                      state: "NY"
-                      zipcode: "10001"
-                      country: "US"
-                    contact:
-                      phone: "+1-555-0100"
-                      mobile: "+1-555-0101"
-              validCorporateCA:
-                summary: Valid corporate customer in Canada
-                value:
-                  customer_id: "CUST-002"
-                  customer:
-                    name: "Acme Corporation"
-                    email: "contact@acme.com"
-                    type: "corporate"
-                    address:
-                      street: "456 Business Ave"
-                      city: "Toronto"
-                      state: "ON"
-                      zipcode: "M5H 2N2"
-                      country: "CA"
-                    contact:
-                      phone: "+1-416-555-0200"
-      responses:
-        '201':
-          description: Customer profile created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CustomerProfileResponse'
-              examples:
-                success:
-                  value:
-                    success: true
-                    message: "Customer profile created successfully"
-                    customer_id: "CUST-001"
-                    customer_name: "John Doe"
-                    customer_email: "john.doe@example.com"
-                    customer_type: "individual"
-                    address_formatted: "123 Main St, New York, NY, 10001, US"
-                    country: "US"
-                    contact_phone: "+1-555-0100"
-                    contact_mobile: "+1-555-0101"
-                    validation_summary: "All enum validations passed: type=individual, country=US"
-                    created_at: "2024-01-29T08:00:00Z"
-        '400':
-          description: Invalid enum value in request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+  # /customer/profile:
+  #   post:
+  #     summary: Create customer profile with nested enums
+  #     description: |
+  #       Tests enum validation within nested structures.
+  #       Returns formatted customer profile with all nested data.
+  #     operationId: createCustomerProfile
+  #     tags:
+  #       - Customer Management
+  #     requestBody:
+  #       required: true
+  #       content:
+  #         application/json:
+  #           schema:
+  #             $ref: '#/components/schemas/CustomerProfileRequest'
+  #           examples:
+  #             validIndividualUS:
+  #               summary: Valid individual customer in US
+  #               value:
+  #                 customer_id: "CUST-001"
+  #                 customer:
+  #                   name: "John Doe"
+  #                   email: "john.doe@example.com"
+  #                   type: "individual"
+  #                   address:
+  #                     street: "123 Main St"
+  #                     city: "New York"
+  #                     state: "NY"
+  #                     zipcode: "10001"
+  #                     country: "US"
+  #                   contact:
+  #                     phone: "+1-555-0100"
+  #                     mobile: "+1-555-0101"
+  #             validCorporateCA:
+  #               summary: Valid corporate customer in Canada
+  #               value:
+  #                 customer_id: "CUST-002"
+  #                 customer:
+  #                   name: "Acme Corporation"
+  #                   email: "contact@acme.com"
+  #                   type: "corporate"
+  #                   address:
+  #                     street: "456 Business Ave"
+  #                     city: "Toronto"
+  #                     state: "ON"
+  #                     zipcode: "M5H 2N2"
+  #                     country: "CA"
+  #                   contact:
+  #                     phone: "+1-416-555-0200"
+  #     responses:
+  #       '201':
+  #         description: Customer profile created successfully
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/CustomerProfileResponse'
+  #             examples:
+  #               success:
+  #                 value:
+  #                   success: true
+  #                   message: "Customer profile created successfully"
+  #                   customer_id: "CUST-001"
+  #                   customer_name: "John Doe"
+  #                   customer_email: "john.doe@example.com"
+  #                   customer_type: "individual"
+  #                   address_formatted: "123 Main St, New York, NY, 10001, US"
+  #                   country: "US"
+  #                   contact_phone: "+1-555-0100"
+  #                   contact_mobile: "+1-555-0101"
+  #                   validation_summary: "All enum validations passed: type=individual, country=US"
+  #                   created_at: "2024-01-29T08:00:00Z"
+  #       '400':
+  #         description: Invalid enum value in request
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/ErrorResponse'
 
   /customer/multi-level-enum:
     post:
@@ -157,7 +157,7 @@ paths:
       description: |
         Combined test for enum validation at multiple nesting levels.
         Returns comprehensive validation report.
-      operationId: createMultiLevelEnumProfile
+      operationId: createCustomerProfileMultiLevel
       tags:
         - Customer Management
       requestBody:
