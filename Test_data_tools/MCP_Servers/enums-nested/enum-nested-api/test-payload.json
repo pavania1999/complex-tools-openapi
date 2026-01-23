@@ -1,0 +1,144 @@
+{
+    "test_account_status_valid": {
+        "account_id": "ACC-12345",
+        "status": "active",
+        "type": "personal"
+    },
+    "test_account_status_invalid_status": {
+        "account_id": "ACC-12345",
+        "status": "pending",
+        "type": "personal"
+    },
+    "test_account_status_invalid_type": {
+        "account_id": "ACC-12345",
+        "status": "active",
+        "type": "enterprise"
+    },
+    "test_multi_level_all_valid": {
+        "profile_id": "PROF-001",
+        "status": "active",
+        "customer": {
+            "name": "Alice Johnson",
+            "email": "alice@example.com",
+            "type": "individual",
+            "address": {
+                "street": "321 Oak Ave",
+                "city": "Seattle",
+                "state": "WA",
+                "zipcode": "98101",
+                "country": "US"
+            },
+            "contact": {
+                "phone": "+1-206-555-0300",
+                "preference": "email",
+                "timezone": "PST"
+            }
+        }
+    },
+    "test_multi_level_invalid_status": {
+        "profile_id": "PROF-002",
+        "status": "pending",
+        "customer": {
+            "name": "Bob Smith",
+            "email": "bob@example.com",
+            "type": "individual",
+            "address": {
+                "street": "456 Pine St",
+                "city": "Portland",
+                "state": "OR",
+                "zipcode": "97201",
+                "country": "US"
+            }
+        }
+    },
+    "test_multi_level_invalid_customer_type": {
+        "profile_id": "PROF-003",
+        "status": "active",
+        "customer": {
+            "name": "Charlie Brown",
+            "email": "charlie@example.com",
+            "type": "government",
+            "address": {
+                "street": "789 Elm St",
+                "city": "Vancouver",
+                "state": "BC",
+                "zipcode": "V6B 1A1",
+                "country": "CA"
+            }
+        }
+    },
+    "test_multi_level_invalid_country": {
+        "profile_id": "PROF-004",
+        "status": "active",
+        "customer": {
+            "name": "Diana Prince",
+            "email": "diana@example.com",
+            "type": "individual",
+            "address": {
+                "street": "101 Hero Lane",
+                "city": "Paris",
+                "state": "IDF",
+                "zipcode": "75001",
+                "country": "FR"
+            }
+        }
+    },
+    "test_multi_level_invalid_preference": {
+        "profile_id": "PROF-005",
+        "status": "active",
+        "customer": {
+            "name": "Eve Adams",
+            "email": "eve@example.com",
+            "type": "corporate",
+            "address": {
+                "street": "202 Business Blvd",
+                "city": "London",
+                "state": "ENG",
+                "zipcode": "SW1A 1AA",
+                "country": "UK"
+            },
+            "contact": {
+                "phone": "+44-20-7946-0958",
+                "preference": "fax",
+                "timezone": "GMT"
+            }
+        }
+    },
+    "test_multi_level_multiple_invalid": {
+        "profile_id": "PROF-006",
+        "status": "suspended",
+        "customer": {
+            "name": "Frank Miller",
+            "email": "frank@example.com",
+            "type": "nonprofit",
+            "address": {
+                "street": "303 Charity Circle",
+                "city": "Berlin",
+                "state": "BE",
+                "zipcode": "10115",
+                "country": "DE"
+            },
+            "contact": {
+                "phone": "+49-30-1234-5678",
+                "preference": "mail",
+                "timezone": "CET"
+            }
+        }
+    },
+    "test_multi_level_no_contact": {
+        "profile_id": "PROF-007",
+        "status": "inactive",
+        "customer": {
+            "name": "Grace Hopper",
+            "email": "grace@example.com",
+            "type": "corporate",
+            "address": {
+                "street": "404 Tech Drive",
+                "city": "Toronto",
+                "state": "ON",
+                "zipcode": "M5H 2N2",
+                "country": "CA"
+            }
+        }
+    }
+}

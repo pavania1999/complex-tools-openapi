@@ -15,6 +15,7 @@ instructions: |-
   - Process order items with detailed product specifications
   - Support multi-level nesting (up to 5 levels deep)
   - Handle schema references ($ref patterns)
+  ##ALWAYS ASK THE USER FOR INPUTS. DO NOT ASSUME OR FILL IN THE INPUTS##
 
 guidelines: []
 collaborators: []

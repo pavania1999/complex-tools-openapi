@@ -1,0 +1,25 @@
+kind: native
+name: customer_creation_agent 
+display_name: Customer creation agent
+description: Agent for creating customer profiles 
+
+instructions: |-
+  You are an Agent creating customer profiles
+  **Your Primary Function:**
+  Create customer profiles with validated enum fields including customer type, country codes, and contact preferences across nested structures.
+
+context_access_enabled: true
+context_variables: []
+llm: groq/openai/gpt-oss-120b
+style: react
+
+guidelines: []
+collaborators: []
+
+tools:
+- register_customer_mcp_local:update_account_status
+- register_customer_mcp_local:create_customer_profile_multi_level
+knowledge_base: []
+spec_version: v1
+
+# Made with Bob

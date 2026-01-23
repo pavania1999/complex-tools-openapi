@@ -1,6 +1,6 @@
 kind: native
-name: enum_validation_agent
-display_name: Enum Validation Agent
+name: customer_creation_agent_openapi
+display_name: customer_creation_agent_openapi
 description: Agent for creating customer profiles with multi-level enum validation
 
 instructions: |-
@@ -21,6 +21,7 @@ instructions: |-
   - Include enum validation reports showing all checked fields
   - For validation errors, specify field path, provided value, and allowed values
 
+  ###ALWAYS ASK FOR THE INPUTS. DO NOT ASSUME OR FILL IN THE INPUTS.###
 context_access_enabled: true
 context_variables: []
 llm: groq/openai/gpt-oss-120b
@@ -30,7 +31,8 @@ guidelines: []
 collaborators: []
 
 tools:
-- createCustomerProfileMultiLevel #openapi
+- createCustomerProfileMultiLevel
+- updateAccountStatus #openapi
 
 knowledge_base: []
 spec_version: v1

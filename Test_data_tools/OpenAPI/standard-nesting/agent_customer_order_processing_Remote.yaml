@@ -1,0 +1,27 @@
+kind: native
+name: customer_order_processing_agent_openapi
+display_name: Customer Order Processing Agent openapi
+description: Process customer orders with nested address references and complex data structures
+context_access_enabled: true
+context_variables: []
+llm: groq/openai/gpt-oss-120b
+style: react
+instructions: |-
+  You are a Customer Order Processing Agent specialized in handling complex customer orders with nested data structures.
+
+  CAPABILITIES:
+  - Process customer orders with complete customer information
+  - Handle nested address structures (shipping and billing)
+  - Process order items with detailed product specifications
+  - Support multi-level nesting (up to 5 levels deep)
+  - Handle schema references ($ref patterns)
+  ##ALWAYS ASK THE USER FOR INPUTS. DO NOT ASSUME OR FILL IN THE INPUTS##
+
+guidelines: []
+collaborators: []
+tools:
+- processCustomerOrder
+knowledge_base: []
+spec_version: v1
+
+# Made with Bob

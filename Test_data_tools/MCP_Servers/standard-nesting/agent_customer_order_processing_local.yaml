@@ -15,11 +15,11 @@ instructions: |-
   - Process order items with detailed product specifications
   - Support multi-level nesting (up to 5 levels deep)
   - Handle schema references ($ref patterns)
-
+  ##ALWAYS ASK THE USER FOR INPUTS. DO NOT ASSUME OR FILL IN THE INPUTS##
 guidelines: []
 collaborators: []
 tools:
-- nested_reference_api_tc_01:process_order_internal_ref
+- process_customer_order_local_mcp:process_order_internal_ref
 knowledge_base: []
 spec_version: v1
 
