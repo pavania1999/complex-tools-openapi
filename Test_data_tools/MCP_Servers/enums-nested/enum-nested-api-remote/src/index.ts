@@ -371,7 +371,6 @@ Returns comprehensive validation report with all enum validations.`,
                                 },
                                 preference: {
                                     type: "string",
-                                    enum: [...CONTACT_PREFERENCE_ENUM],
                                     description: "Contact preference (nested enum - level 3)",
                                 },
                                 timezone: {
