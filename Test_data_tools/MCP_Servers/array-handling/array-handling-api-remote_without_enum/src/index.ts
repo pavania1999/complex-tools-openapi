@@ -73,7 +73,6 @@ Returns a response with processing status, processed items details, and total va
                             category: {
                                 type: "string",
                                 description: "Item category",
-                                enum: [...CATEGORY_ENUM],
                             },
                             specifications: {
                                 type: "object",
