@@ -61,7 +61,8 @@ Returns a response with processing status, processed items details, and total va
                             price: {
                                 type: "number",
                                 description: "Unit price",
-                                exclusiveMinimum: 0,
+                                minimum: 0,
+                                exclusiveMinimum: true,
                             },
                             category: {
                                 type: "string",
