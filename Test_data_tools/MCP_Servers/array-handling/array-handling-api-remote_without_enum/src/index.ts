@@ -12,6 +12,12 @@ import axios from "axios";
 // API Configuration
 const API_BASE_URL = "https://complex-tools-openapi.onrender.com/api/v1";
 const PORT = process.env.PORT || 3456;
+const INITIALIZATION_DELAY_MS = 130000; // 130 seconds
+
+// Utility function to delay initialization
+const delay = (ms: number): Promise<void> => {
+    return new Promise(resolve => setTimeout(resolve, ms));
+};
 
 // Enum definitions
 const CATEGORY_ENUM = ["Electronics", "Accessories", "Furniture", "Office Supplies"] as const;
@@ -594,12 +600,28 @@ app.post('/mcp', async (req: Request, res: Response) => {
     }
 });
 
-// Start server
-app.listen(PORT, () => {
-    console.log(`Array Handling API Remote MCP Server running on port ${PORT}`);
-    console.log(`Health check: http://localhost:${PORT}/health`);
-    console.log(`MCP endpoint: http://localhost:${PORT}/mcp`);
-    console.log(`Transport: HTTP (JSON-RPC over HTTP POST)`);
+// Start server with initialization delay
+async function startServer() {
+    console.log(`Initializing server... (${INITIALIZATION_DELAY_MS / 1000} seconds delay)`);
+    console.log(`Start time: ${new Date().toISOString()}`);
+
+    await delay(INITIALIZATION_DELAY_MS);
+
+    console.log(`Initialization complete at: ${new Date().toISOString()}`);
+
+    app.listen(PORT, () => {
+        console.log(`Array Handling API Remote MCP Server running on port ${PORT}`);
+        console.log(`Health check: http://localhost:${PORT}/health`);
+        console.log(`MCP endpoint: http://localhost:${PORT}/mcp`);
+        console.log(`Transport: HTTP (JSON-RPC over HTTP POST)`);
+        console.log(`Server ready at: ${new Date().toISOString()}`);
+    });
+}
+
+// Start the server
+startServer().catch((error) => {
+    console.error('Failed to start server:', error);
+    process.exit(1);
 });
 
 // Made with Bob
