@@ -12,7 +12,7 @@ import axios from "axios";
 // API Configuration
 const API_BASE_URL = "https://complex-tools-openapi.onrender.com/api/v1";
 const PORT = process.env.PORT || 3456;
-const INITIALIZATION_DELAY_MS = 130000; // 130 seconds
+const INITIALIZATION_DELAY_MS = 130000; // 130 seconds - exceeds the 120s gateway timeout
 
 // Utility function to delay initialization
 const delay = (ms: number): Promise<void> => {
@@ -375,6 +375,27 @@ app.get('/', (req: Request, res: Response) => {
 app.post('/mcp', async (req: Request, res: Response) => {
     console.log('Received MCP request:', req.body.method);
 
+    // Wait for initialization to complete before processing requests
+    if (!isInitialized) {
+        console.log('Server still initializing, waiting...');
+        const startWait = Date.now();
+        while (!isInitialized) {
+            await delay(1000); // Check every second
+            if (Date.now() - startWait > 140000) { // 140 second timeout (allows 130s init + 10s buffer)
+                console.error('Initialization timeout');
+                return res.status(503).json({
+                    jsonrpc: '2.0',
+                    id: req.body.id,
+                    error: {
+                        code: -32000,
+                        message: 'Server initialization timeout'
+                    }
+                });
+            }
+        }
+        console.log('Initialization complete, processing request');
+    }
+
     try {
         // Handle the JSON-RPC request
         const request = req.body;
@@ -600,28 +621,24 @@ app.post('/mcp', async (req: Request, res: Response) => {
     }
 });
 
-// Start server with initialization delay
-async function startServer() {
-    console.log(`Initializing server... (${INITIALIZATION_DELAY_MS / 1000} seconds delay)`);
+// Track initialization state
+let isInitialized = false;
+
+// Start server and initialize after delay
+app.listen(PORT, async () => {
+    console.log(`Array Handling API Remote MCP Server starting on port ${PORT}`);
+    console.log(`Health check: http://localhost:${PORT}/health`);
+    console.log(`MCP endpoint: http://localhost:${PORT}/mcp`);
+    console.log(`Transport: HTTP (JSON-RPC over HTTP POST)`);
+    console.log(`Initializing... (${INITIALIZATION_DELAY_MS / 1000} seconds delay)`);
     console.log(`Start time: ${new Date().toISOString()}`);
 
+    // Simulate slow initialization
     await delay(INITIALIZATION_DELAY_MS);
 
+    isInitialized = true;
     console.log(`Initialization complete at: ${new Date().toISOString()}`);
-
-    app.listen(PORT, () => {
-        console.log(`Array Handling API Remote MCP Server running on port ${PORT}`);
-        console.log(`Health check: http://localhost:${PORT}/health`);
-        console.log(`MCP endpoint: http://localhost:${PORT}/mcp`);
-        console.log(`Transport: HTTP (JSON-RPC over HTTP POST)`);
-        console.log(`Server ready at: ${new Date().toISOString()}`);
-    });
-}
-
-// Start the server
-startServer().catch((error) => {
-    console.error('Failed to start server:', error);
-    process.exit(1);
+    console.log(`Server ready to accept requests`);
 });
 
 // Made with Bob
