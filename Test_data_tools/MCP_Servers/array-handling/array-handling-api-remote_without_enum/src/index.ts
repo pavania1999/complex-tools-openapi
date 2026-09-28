@@ -13,10 +13,19 @@ import axios from "axios";
 const API_BASE_URL = "https://complex-tools-openapi.onrender.com/api/v1";
 const PORT = process.env.PORT || 3456;
 const INITIALIZATION_DELAY_MS = 130000; // 130 seconds - exceeds the 120s gateway timeout
+const MCP_HANDLER_TIMEOUT_MS = 300000; // 5 minutes timeout for initialize and tools/list
 
 // Utility function to delay initialization
 const delay = (ms: number): Promise<void> => {
     return new Promise(resolve => setTimeout(resolve, ms));
+};
+
+// Wraps a promise with a timeout; rejects with a timeout error if exceeded
+const withTimeout = <T>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+    const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms)
+    );
+    return Promise.race([promise, timeout]);
 };
 
 // Enum definitions
@@ -401,28 +410,62 @@ app.post('/mcp', async (req: Request, res: Response) => {
         const request = req.body;
 
         if (request.method === 'initialize') {
-            res.json({
-                jsonrpc: '2.0',
-                id: request.id,
-                result: {
-                    protocolVersion: '2024-11-05',
-                    capabilities: {
-                        tools: {}
-                    },
-                    serverInfo: {
-                        name: 'array-handling-api-remote',
-                        version: '1.0.0'
-                    }
+            try {
+                await withTimeout(
+                    Promise.resolve().then(() => {
+                        res.json({
+                            jsonrpc: '2.0',
+                            id: request.id,
+                            result: {
+                                protocolVersion: '2024-11-05',
+                                capabilities: {
+                                    tools: {}
+                                },
+                                serverInfo: {
+                                    name: 'array-handling-api-remote',
+                                    version: '1.0.0'
+                                }
+                            }
+                        });
+                    }),
+                    MCP_HANDLER_TIMEOUT_MS,
+                    'initialize'
+                );
+            } catch (timeoutErr) {
+                console.error('initialize handler timed out:', timeoutErr);
+                if (!res.headersSent) {
+                    res.status(504).json({
+                        jsonrpc: '2.0',
+                        id: request.id,
+                        error: { code: -32000, message: (timeoutErr as Error).message }
+                    });
                 }
-            });
+            }
         } else if (request.method === 'tools/list') {
-            res.json({
-                jsonrpc: '2.0',
-                id: request.id,
-                result: {
-                    tools: TOOLS
+            try {
+                await withTimeout(
+                    Promise.resolve().then(() => {
+                        res.json({
+                            jsonrpc: '2.0',
+                            id: request.id,
+                            result: {
+                                tools: TOOLS
+                            }
+                        });
+                    }),
+                    MCP_HANDLER_TIMEOUT_MS,
+                    'tools/list'
+                );
+            } catch (timeoutErr) {
+                console.error('tools/list handler timed out:', timeoutErr);
+                if (!res.headersSent) {
+                    res.status(504).json({
+                        jsonrpc: '2.0',
+                        id: request.id,
+                        error: { code: -32000, message: (timeoutErr as Error).message }
+                    });
                 }
-            });
+            }
         } else if (request.method === 'notifications/initialized') {
             // Handle initialized notification - just acknowledge it
             console.log('Client initialized notification received');
